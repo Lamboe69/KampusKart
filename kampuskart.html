@@ -1,0 +1,3157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KampusKart — Uganda Campus Marketplace</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#3D81E3',
+            campus: '#00d2ff',
+            'campus-dark': '#0B2551',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    *, html, body { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    #root { width: 100%; }
+    ::selection { background: rgba(61, 129, 227, 0.3); }
+    @keyframes shiny {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    .animate-shiny {
+      animation: shiny 6s linear infinite;
+    }
+    .liquid-glass {
+      background: rgba(255,255,255,0.01);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(4px);
+      border: none;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+      position: relative; overflow: hidden;
+    }
+    .liquid-glass::before {
+      content: ''; position: absolute; inset: 0; border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%,
+        rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+        rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 210, 255, 0.15); }
+      50% { box-shadow: 0 0 40px rgba(0, 210, 255, 0.3); }
+    }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-slide-in-right { animation: slideInRight 0.5s ease-out forwards; }
+    .animate-slide-in-left { animation: slideInLeft 0.5s ease-out forwards; }
+    .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-400 { animation-delay: 0.4s; }
+    .delay-500 { animation-delay: 0.5s; }
+    .delay-600 { animation-delay: 0.6s; }
+    .delay-700 { animation-delay: 0.7s; }
+    .delay-800 { animation-delay: 0.8s; }
+    .delay-900 { animation-delay: 0.9s; }
+    .delay-1000 { animation-delay: 1.0s; }
+    .status-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .status-shipped { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .status-delivered { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .status-disputed { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .status-completed { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .badge-verified { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .badge-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .badge-unverified { background: rgba(107, 114, 128, 0.15); color: #9ca3af; }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .line-clamp-1 {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .btn-ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-ripple::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      width: 100px;
+      height: 100px;
+      margin-top: -50px;
+      margin-left: -50px;
+      top: 50%;
+      left: 50%;
+      transform: scale(0);
+      opacity: 0;
+    }
+    .btn-ripple:active::after {
+      animation: ripple 0.6s ease-out;
+    }
+    @keyframes ripple {
+      0% { transform: scale(0); opacity: 0.5; }
+      100% { transform: scale(4); opacity: 0; }
+    }
+    .card-press { transition: transform 0.15s; }
+    .card-press:active { transform: scale(0.98); }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    .section-title-underline {
+      display: inline-block;
+      position: relative;
+    }
+    .section-title-underline::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #f59e0b, transparent);
+    }
+    @keyframes tickerUp {
+      0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+      10% { opacity: 1; transform: translateY(0) scale(1); }
+      80% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    }
+    .animate-ticker { animation: tickerUp 5s ease-out forwards; }
+    @keyframes countdown-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    }
+    .animate-countdown { animation: countdown-pulse 2s ease-in-out infinite; }
+    @keyframes float-up {
+      0% { opacity: 0; transform: translateY(0); }
+      100% { opacity: 1; transform: translateY(-100%); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, createContext, useContext } = React;
+
+const API = window.location.origin + '/api';
+const TOKEN_KEY = 'kampuskart_token';
+
+const api = {
+  async request(path, opts = {}) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const headers = { 'Content-Type': 'application/json', ...opts.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API}${path}`, { ...opts, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  },
+  get(path) { return this.request(path); },
+  post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); },
+  put(path, body) { return this.request(path, { method: 'PUT', body: JSON.stringify(body) }); },
+  del(path) { return this.request(path, { method: 'DELETE' }); },
+};
+
+    const LogoMark = ({ className = "w-8 h-8" }) => (
+      <svg className={className} viewBox="0 0 256 256" fill="white">
+        <path d="M 0 128 C 70.692 128 128 185.308 128 256 L 64 256 C 64 220.654 35.346 192 0 192 Z M 256 192 C 220.654 192 192 220.654 192 256 L 128 256 C 128 185.308 185.308 128 256 128 Z M 128 0 C 128 70.692 70.692 128 0 128 L 0 64 C 35.346 64 64 35.346 64 0 Z M 192 0 C 192 35.346 220.654 64 256 64 L 256 128 C 185.308 128 128 70.692 128 0 Z" />
+      </svg>
+    );
+
+    const CATEGORIES = [
+      { id: 'all', name: 'All', icon: '🔍' },
+      { id: 'electronics', name: 'Electronics', icon: '📱' },
+      { id: 'fashion', name: 'Fashion', icon: '👕' },
+      { id: 'books', name: 'Books & Notes', icon: '📚' },
+      { id: 'food', name: 'Food & Snacks', icon: '🍔' },
+      { id: 'beauty', name: 'Beauty', icon: '💄' },
+      { id: 'services', name: 'Services', icon: '🔧' },
+      { id: 'furniture', name: 'Furniture', icon: '🪑' },
+    ];
+
+    const CAMPUSES = [
+      { id: 'makerere', name: 'Makerere University', location: 'Kampala' },
+      { id: 'kyambogo', name: 'Kyambogo University', location: 'Kampala' },
+      { id: 'muk', name: 'Mbarara University', location: 'Mbarara' },
+      { id: 'gulu', name: 'Gulu University', location: 'Gulu' },
+      { id: 'busitema', name: 'Busitema University', location: 'Busia' },
+    ];
+
+    let MOCK_PRODUCTS = [];
+let MOCK_SHOPS = [];
+let MOCK_ORDERS = [];
+let MOCK_WALLET = { balance: 0, pending: 0, totalEarned: 0 };
+
+const IMG_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22400%22 viewBox=%220 0 400 400%22%3E%3Crect fill=%22%23222%22 width=%22400%22 height=%22400%22/%3E%3Ctext x=%22200%22 y=%22200%22 text-anchor=%22middle%22 dominant-baseline=%22central%22 fill=%22%23666%22 font-size=%2260%22%3E📦%3C/text%3E%3C/svg%3E';
+const onImgError = (e) => { e.target.src = IMG_FALLBACK; e.target.onerror = null; };
+
+const normalizeProduct = (p) => ({
+  ...p,
+  seller: p.sellerName || p.seller_name || p.seller || 'Unknown',
+  sellerType: p.sellerType || p.seller_type || 'individual',
+  deliveryFee: p.deliveryFee || p.delivery_fee || 0,
+  originalPrice: p.originalPrice || p.original_price || null,
+  reviews: p.reviewsCount || p.reviews_count || p.reviews || 0,
+  image: p.image || IMG_FALLBACK,
+  description: p.description || '',
+  delivery: typeof p.deliveryZones === 'string' ? JSON.parse(p.deliveryZones || '[]') : (typeof p.delivery_zones === 'string' ? JSON.parse(p.delivery_zones || '[]') : (p.delivery || p.deliveryZones || p.delivery_zones || [])),
+  badge: p.badge || null,
+  verified: p.verified || false,
+  condition: p.condition || 'Brand New',
+});
+
+const AppContext = createContext();
+
+    const AppProvider = ({ children }) => {
+      const [user, setUser] = useState(null);
+      const [products, setProducts] = useState([]);
+      const [shops, setShops] = useState([]);
+      const [orders, setOrders] = useState([]);
+      const [wallet, setWallet] = useState({ balance: 0, pending: 0, totalEarned: 0 });
+      const [notifications, setNotifications] = useState([]);
+      const [currentPage, setCurrentPage] = useState('landing');
+      const [selectedProduct, setSelectedProduct] = useState(null);
+      const [selectedShop, setSelectedShop] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedCategory, setSelectedCategory] = useState('all');
+      const [selectedCampus, setSelectedCampus] = useState('all');
+      const [infoTopic, setInfoTopic] = useState('help');
+      const [showMobileMenu, setShowMobileMenu] = useState(false);
+      const [showAuth, setShowAuth] = useState(false);
+      const [showCart, setShowCart] = useState(false);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const init = async () => {
+          setLoading(true);
+          try {
+            const [prodData, shopData] = await Promise.all([
+              api.get('/products').then(d => ({
+                products: (d.products || []).map(normalizeProduct)
+              })),
+              api.get('/shops').then(d => ({
+                shops: (d.shops || []).map(s => ({ ...s, reviews: s.reviews || s.reviews_count || 0 }))
+              })),
+            ]);
+            setProducts(prodData.products || prodData);
+            setShops(shopData.shops || shopData);
+          } catch (e) {
+            console.error('Failed to load public data', e);
+          }
+          const token = localStorage.getItem(TOKEN_KEY);
+          if (token) {
+            try {
+              const [userData, ordersData, walletData, notifData] = await Promise.all([
+                api.get('/auth/me'),
+                api.get('/orders'),
+                api.get('/wallet'),
+                api.get('/notifications'),
+              ]);
+              setUser(userData.user || userData);
+              setOrders(ordersData.orders || ordersData);
+              setWallet(walletData.wallet || walletData);
+              setNotifications(notifData.notifications || notifData);
+            } catch (e) {
+              localStorage.removeItem(TOKEN_KEY);
+            }
+          }
+          setLoading(false);
+        };
+        init();
+      }, []);
+
+      const login = async (email, password) => {
+        const data = await api.post('/auth/login', { email, password });
+        if (!data || !data.token) throw new Error(data?.error || 'Login failed');
+        localStorage.setItem(TOKEN_KEY, data.token);
+        setUser(data.user);
+        try {
+          const [ordersData, walletData, notifData] = await Promise.all([
+            api.get('/orders'),
+            api.get('/wallet'),
+            api.get('/notifications'),
+          ]);
+          setOrders(ordersData.orders || ordersData);
+          setWallet(walletData.wallet || walletData);
+          setNotifications(notifData.notifications || notifData);
+        } catch (e) { console.error(e); }
+        return data;
+      };
+
+      const register = async (name, email, password, type, campus) => {
+        const data = await api.post('/auth/register', { name, email, password, type, campus });
+        if (!data || !data.token) throw new Error(data?.error || 'Registration failed');
+        localStorage.setItem(TOKEN_KEY, data.token);
+        setUser(data.user);
+        try {
+          const [ordersData, walletData, notifData] = await Promise.all([
+            api.get('/orders'),
+            api.get('/wallet'),
+            api.get('/notifications'),
+          ]);
+          setOrders(ordersData.orders || ordersData);
+          setWallet(walletData.wallet || walletData);
+          setNotifications(notifData.notifications || notifData);
+        } catch (e) { console.error(e); }
+        return data;
+      };
+
+      const logout = () => {
+        localStorage.removeItem(TOKEN_KEY);
+        setUser(null);
+        setOrders([]);
+        setWallet({ balance: 0, pending: 0, totalEarned: 0 });
+        setNotifications([]);
+      };
+
+      const addToCart = (product, qty = 1) => {
+        if (!user) { setShowAuth(true); return; }
+        setUser(prev => {
+          if (!prev) return prev;
+          const existing = (prev.cart || []).find(item => (item.product ? item.product.id : item.id) === product.id);
+          if (existing) {
+            return {
+              ...prev,
+              cart: prev.cart.map(item =>
+                (item.product ? item.product.id : item.id) === product.id
+                  ? { ...item, quantity: (item.quantity || 1) + qty }
+                  : item
+              )
+            };
+          }
+          return { ...prev, cart: [...(prev.cart || []), { product, quantity: qty }] };
+        });
+      };
+      const removeFromCart = (productId) => {
+        setUser(prev => prev ? { ...prev, cart: (prev.cart || []).filter(item => {
+          const id = item.product ? item.product.id : item.id;
+          return id !== productId;
+        }) } : prev);
+      };
+      const updateCartQuantity = (productId, delta) => {
+        setUser(prev => {
+          if (!prev) return prev;
+          const updated = (prev.cart || []).map(item => {
+            const id = item.product ? item.product.id : item.id;
+            if (id === productId) {
+              const newQty = (item.quantity || 1) + delta;
+              return newQty <= 0 ? null : { ...item, quantity: newQty };
+            }
+            return item;
+          }).filter(Boolean);
+          return { ...prev, cart: updated };
+        });
+      };
+      const clearCart = () => {
+        setUser(prev => prev ? { ...prev, cart: [] } : prev);
+      };
+      const markNotificationRead = async (id) => {
+        try {
+          await api.put(`/notifications/${id}/read`);
+          setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        } catch (e) { console.error(e); }
+      };
+      const markAllNotificationsRead = async () => {
+        try {
+          await api.put('/notifications/read-all');
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (e) { console.error(e); }
+      };
+
+      const refreshOrders = async () => {
+        try {
+          const data = await api.get('/orders');
+          setOrders(data.orders || data);
+        } catch (e) { console.error(e); }
+      };
+      const refreshWallet = async () => {
+        try {
+          const data = await api.get('/wallet');
+          setWallet(data.wallet || data);
+        } catch (e) { console.error(e); }
+      };
+      const refreshProducts = async (params = {}) => {
+        try {
+          const query = new URLSearchParams();
+          if (params.category && params.category !== 'all') query.set('category', params.category);
+          if (params.campus && params.campus !== 'all') query.set('campus', params.campus);
+          if (params.search) query.set('search', params.search);
+          if (params.minPrice) query.set('minPrice', params.minPrice);
+          if (params.maxPrice) query.set('maxPrice', params.maxPrice);
+          if (params.sort) query.set('sort', params.sort);
+          if (params.seller_id) query.set('seller_id', params.seller_id);
+          const qs = query.toString();
+          const data = await api.get(`/products${qs ? '?' + qs : ''}`);
+          setProducts((data.products || data || []).map(normalizeProduct));
+        } catch (e) { console.error(e); }
+      };
+
+      return (
+        <AppContext.Provider value={{
+          user, setUser, currentPage, setCurrentPage,
+          selectedProduct, setSelectedProduct, selectedShop, setSelectedShop,
+          products, shops, orders, wallet, setWallet, notifications, loading,
+          markNotificationRead, markAllNotificationsRead,
+          searchQuery, setSearchQuery,
+          selectedCategory, setSelectedCategory, selectedCampus, setSelectedCampus,
+          showMobileMenu, setShowMobileMenu, showCart, setShowCart, addToCart, removeFromCart, updateCartQuantity, clearCart,
+          showAuth, setShowAuth, login, register, logout, refreshProducts,
+          refreshOrders, refreshWallet, setOrders, infoTopic, setInfoTopic
+        }}>
+          {children}
+        </AppContext.Provider>
+      );
+    };
+
+    const useApp = () => useContext(AppContext);
+
+    const LoginModal = () => {
+      const { showAuth, setShowAuth, login, register } = useApp();
+      const [tab, setTab] = useState('login');
+      const [name, setName] = useState('');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [type, setType] = useState('individual');
+      const [campus, setCampus] = useState('makerere');
+      const [error, setError] = useState('');
+      const [busy, setBusy] = useState(false);
+
+      if (!showAuth) return null;
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setBusy(true);
+        try {
+          if (tab === 'login') {
+            await login(email, password);
+          } else {
+            await register(name, email, password, type, campus);
+          }
+          setShowAuth(false);
+          resetForm();
+        } catch (err) {
+          setError(err.message || 'Something went wrong');
+        } finally {
+          setBusy(false);
+        }
+      };
+
+      const resetForm = () => { setName(''); setEmail(''); setPassword(''); setType('individual'); setCampus('makerere'); setError(''); };
+
+      return (
+        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => { setShowAuth(false); resetForm(); }}>
+          <div className="liquid-glass rounded-3xl p-8 max-w-md w-full animate-fade-in-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">{tab === 'login' ? 'Welcome Back' : 'Join KampusKart'}</h2>
+              <button onClick={() => { setShowAuth(false); resetForm(); }} className="text-white/50 hover:text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <div className="flex gap-2 mb-6 bg-white/5 rounded-full p-1">
+              <button onClick={() => { setTab('login'); setError(''); }} className={`flex-1 py-2 rounded-full text-sm font-medium transition-all ${tab === 'login' ? 'bg-white text-black' : 'text-white/60'}`}>Login</button>
+              <button onClick={() => { setTab('register'); setError(''); }} className={`flex-1 py-2 rounded-full text-sm font-medium transition-all ${tab === 'register' ? 'bg-white text-black' : 'text-white/60'}`}>Register</button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {tab === 'register' && (
+                <>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Full Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30" placeholder="e.g. Alex Okello" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Account Type</label>
+                    <div className="flex gap-2">
+                      {['individual', 'shop'].map(t => (
+                        <button key={t} type="button" onClick={() => setType(t)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${type === t ? 'border-white/30 bg-white/5 text-white' : 'border-white/10 text-white/60'}`}>
+                          {t === 'individual' ? 'Individual' : 'Shop'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Campus</label>
+                    <select value={campus} onChange={e => setCampus(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30">
+                      {CAMPUSES.map(c => <option key={c.id} value={c.id} className="bg-[#1a1a1a]">{c.name}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30" placeholder="you@campus.ac.ug" />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 uppercase tracking-wider mb-1 block">Password</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30" placeholder="••••••••" />
+              </div>
+              {error && <div className="text-sm text-red-400 bg-red-500/10 rounded-xl px-4 py-3">{error}</div>}
+              <Button type="submit" className="w-full justify-center py-4" disabled={busy}>
+                {busy ? 'Please wait...' : (tab === 'login' ? 'Sign In' : 'Create Account')}
+              </Button>
+            </form>
+            <p className="text-xs text-white/30 text-center mt-4">By continuing, you agree to the Terms and Privacy Policy.</p>
+          </div>
+        </div>
+      );
+    };
+
+    const SectionEyebrow = ({ label, tag }) => (
+      <div className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+        <span className="text-white/60 text-xs font-medium uppercase tracking-wider">{label}</span>
+        {tag && <span className="px-2 py-0.5 rounded-full border border-white/10 text-white/50 text-xs">{tag}</span>}
+      </div>
+    );
+
+    const Button = ({ children, variant = 'primary', className = '', onClick, icon: Icon }) => {
+      const base = "inline-flex items-center justify-center gap-2 font-medium text-sm px-5 py-3 rounded-full transition-all active:scale-[0.98] cursor-pointer";
+      const styles = {
+        primary: "bg-amber-500 text-white hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/25",
+        outline: "border border-white/15 text-white hover:bg-white/5",
+        ghost: "text-white/70 hover:text-white hover:bg-white/5",
+        danger: "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30",
+        success: "bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30",
+      };
+      return (
+        <button className={`${base} ${styles[variant]} ${className}`} onClick={onClick}>
+          {Icon && <Icon size={16} />}
+          {children}
+        </button>
+      );
+    };
+
+    const Card = ({ children, className = '', onClick }) => (
+      <div className={`liquid-glass rounded-2xl p-5 transition-all duration-300 hover:border-white/20 ${onClick ? 'cursor-pointer' : ''} ${className}`} onClick={onClick}>
+        {children}
+      </div>
+    );
+
+    const StatusBadge = ({ status }) => {
+      const labels = { pending: 'Pending', shipped: 'Shipped', delivered: 'Delivered', disputed: 'Disputed', completed: 'Completed' };
+      return <span className={`px-2.5 py-1 rounded-full text-xs font-medium status-${status}`}>{labels[status] || status}</span>;
+    };
+
+    const VerifiedBadge = ({ status }) => {
+      const labels = { verified: 'Verified', pending: 'Pending', unverified: 'Unverified' };
+      return <span className={`px-2 py-0.5 rounded-full text-xs font-medium badge-${status}`}>{labels[status] || status}</span>;
+    };
+
+    const StarRating = ({ rating, reviews }) => (
+      <div className="flex items-center gap-1">
+        <span className="text-yellow-400 text-xs">{'★'.repeat(Math.floor(rating))}{rating % 1 >= 0.5 ? '½' : ''}</span>
+        <span className="text-white/40 text-xs">({reviews})</span>
+      </div>
+    );
+
+    const Navbar = () => {
+      const { user, setCurrentPage, currentPage, notifications, searchQuery, setSearchQuery, setShowAuth, logout, removeFromCart, updateCartQuantity, clearCart, refreshOrders, refreshWallet, showCart, setShowCart } = useApp();
+      const unreadCount = (notifications || []).filter(n => !n.read).length;
+      const cartCount = (user?.cart || []).reduce((s, i) => s + (i.quantity || 1), 0);
+      const navLinks = [
+        { label: 'Browse', page: 'home' },
+        { label: 'Shops', page: 'shops' },
+        { label: 'Sell', page: 'sell' },
+        { label: 'Orders', page: 'orders' },
+        { label: 'Wallet', page: 'wallet' },
+      ];
+
+      return (
+        <>
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentPage('landing')}>
+              <LogoMark className="w-7 h-7" />
+              <span className="font-bold text-lg tracking-tight text-white">KampusKart</span>
+            </div>
+            <div className="hidden md:flex items-center gap-1 bg-white/5 rounded-full px-4 py-2 border border-white/10 flex-1 max-w-md mx-8 focus-within:border-amber-500/40 focus-within:shadow-sm focus-within:shadow-amber-500/10 transition-all">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" placeholder="Search products, shops, campuses..."
+                className="bg-transparent border-none outline-none text-sm text-white placeholder-white/30 w-full ml-2"
+                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setCurrentPage('home')} />
+            </div>
+            <div className="hidden md:flex items-center gap-6">
+              {navLinks.map(link => (
+                  <button key={link.page} onClick={() => setCurrentPage(link.page)}
+                    className={`text-sm font-medium transition-colors ${currentPage === link.page ? 'text-amber-400' : 'text-white/60 hover:text-white'}`}>
+                  {link.label}
+                </button>
+              ))}
+              <button onClick={() => setCurrentPage('notifications')} className="relative text-white/60 hover:text-white transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                </svg>
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
+              </button>
+              <button onClick={() => setShowCart(true)} className="relative text-white/60 hover:text-white transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                {cartCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand rounded-full text-[10px] flex items-center justify-center font-bold">{cartCount}</span>}
+              </button>
+              {user ? (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('profile')}>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-campus to-campus-dark flex items-center justify-center text-xs font-bold">
+                    {user.name?.charAt(0) || '?'}
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" className="px-4 py-2 text-xs" onClick={() => setShowAuth(true)}>Sign In</Button>
+              )}
+            </div>
+          </div>
+        </nav>
+        {showCart && (
+          <div className="fixed inset-0 z-[70] flex justify-end">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCart(false)} />
+            <div className="relative w-full max-w-md bg-[#0c0c0c] border-l border-white/10 h-full flex flex-col animate-slide-in-right">
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold">Shopping Cart ({cartCount})</h2>
+                <button onClick={() => setShowCart(false)} className="text-white/50 hover:text-white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {(user?.cart || []).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <div className="text-5xl mb-4">🛒</div>
+                    <p className="text-white/50 text-sm">Your cart is empty</p>
+                    <Button variant="outline" className="mt-4" onClick={() => { setShowCart(false); setCurrentPage('home'); }}>Start Shopping</Button>
+                  </div>
+                ) : (
+                  (user?.cart || []).map((item, i) => {
+                    const p = item.product || item;
+                    const qty = item.quantity || 1;
+                    return (
+                      <div key={p.id} className="flex gap-3 p-3 rounded-xl bg-white/5">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+                          <img src={p.image} alt="" className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.title}</p>
+                          <p className="text-xs text-white/50 mt-0.5">UGX {(p.price || 0).toLocaleString()} each</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => updateCartQuantity(p.id, -1)} className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs hover:bg-white/20">−</button>
+                            <span className="text-sm font-medium w-6 text-center">{qty}</span>
+                            <button onClick={() => updateCartQuantity(p.id, 1)} className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs hover:bg-white/20">+</button>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-semibold">UGX {((p.price || 0) * qty).toLocaleString()}</p>
+                          <button onClick={() => removeFromCart(p.id)} className="text-xs text-red-400 hover:text-red-300 mt-2">Remove</button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              {(user?.cart || []).length > 0 && (
+                <div className="border-t border-white/10 p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Subtotal</span>
+                    <span className="font-medium">UGX {(user?.cart || []).reduce((s, item) => s + ((item.product || item).price || 0) * (item.quantity || 1), 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Delivery</span>
+                    <span className="font-medium">Calculated at checkout</span>
+                  </div>
+                  <Button className="w-full justify-center py-3" onClick={async () => {
+                    const items = user?.cart || [];
+                    for (const item of items) {
+                      const p = item.product || item;
+                      try {
+                        await api.post('/orders', {
+                          product_id: p.id,
+                          quantity: item.quantity || 1,
+                          delivery_to: p.deliveryCampus || p.campus || 'Campus delivery',
+                          delivery_fee: p.deliveryFee || 0,
+                          payment_method: 'mobile_money'
+                        });
+                      } catch (e) {
+                        alert('Order failed for ' + p.title + ': ' + (e.message || 'Error'));
+                        return;
+                      }
+                    }
+                    clearCart();
+                    setShowCart(false);
+                    setCurrentPage('orders');
+                    refreshOrders();
+                    refreshWallet();
+                  }}>
+                    Checkout All ({cartCount} items)
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+      );
+    };
+
+    const LandingPage = () => {
+      const { setCurrentPage, setSelectedCategory, setSelectedProduct, products, shops, setSearchQuery, addToCart, setShowAuth, setInfoTopic } = useApp();
+      const [tickerIdx, setTickerIdx] = useState(0);
+      const [timeLeft, setTimeLeft] = useState({ h: 0, m: 0, s: 0 });
+      const [showTrending, setShowTrending] = useState(false);
+      const [tickerVisible, setTickerVisible] = useState(true);
+
+      const purchaseEvents = [
+        { name: 'John K.', item: 'iPhone 16 Pro Max', campus: 'Makerere' },
+        { name: 'Sarah A.', item: "Levi's 511 Jeans", campus: 'Kyambogo' },
+        { name: 'Peter O.', item: 'MacBook Pro M4', campus: 'Gulu' },
+        { name: 'Grace M.', item: 'Chicken Pilau Plate', campus: 'Makerere' },
+        { name: 'David L.', item: 'Clean Code Textbook', campus: 'Mbarara' },
+        { name: 'Faith N.', item: 'Study Desk Wooden', campus: 'Busitema' },
+        { name: 'Kevin S.', item: 'Tom Ford Perfume', campus: 'Kyambogo' },
+        { name: 'Ruth A.', item: 'Sony Headphones', campus: 'Makerere' },
+        { name: 'Brian W.', item: 'Nike Air Force 1', campus: 'Gulu' },
+        { name: 'Esther K.', item: 'Calculus Tutoring', campus: 'Mbarara' },
+      ];
+
+      const trendingSearches = ['iPhone', 'Textbooks', 'Pizza', 'Laptop', 'Sneakers', 'Furniture', 'Dresses', 'Perfume'];
+
+      const features = [
+        { icon: '🏪', title: 'Shop Subscriptions', desc: 'Open your own shop for UGX 50,000/month. Unlimited listings, analytics, and featured placement.' },
+        { icon: '👤', title: 'Individual Selling', desc: 'Sell second-hand or brand new items with just 10% commission per sale. No monthly fees.' },
+        { icon: '🚚', title: 'Campus Delivery', desc: 'Sellers set delivery zones and fees. Negotiate directly. Deliver from Makerere to Gulu and beyond.' },
+        { icon: '🔒', title: 'Secure Escrow', desc: 'Payment held until delivery confirmed. 72-hour auto-release. Full dispute resolution with wallet refunds.' },
+        { icon: '✅', title: 'Verified Sellers', desc: 'Student ID and business verification. Trust badges on every listing. Scam-free campus trading.' },
+        { icon: '💰', title: 'MoMo & Airtel Pay', desc: 'Pay with MTN Mobile Money or Airtel Money. Instant wallet top-ups and withdrawals.' },
+      ];
+
+      const testimonials = [
+        { quote: "KampusKart helped me clear out my old textbooks and make money for new ones. The escrow system makes me feel safe every time.", name: "Grace Nakato", role: "3rd Year, Law", campus: "Makerere" },
+        { quote: "My perfume business went from selling to hallmates to delivering across 5 campuses. The shop subscription paid for itself in week one.", name: "Daniel Otim", role: "Shop Owner", campus: "Makerere" },
+        { quote: "I bought a laptop from a seller in Mbarara while I'm in Gulu. The delivery was arranged smoothly and the escrow held my money safely.", name: "Sarah Auma", role: "2nd Year, Engineering", campus: "Gulu" },
+        { quote: "Found a tutor for my calculus course within 10 minutes. The service marketplace is a game changer for struggling students.", name: "James Mukasa", role: "1st Year, Medicine", campus: "Makerere" },
+        { quote: "Sold my old furniture when I was moving out of hall. Made UGX 150K in one weekend. Easiest money ever.", name: "Faith Nambi", role: "4th Year, Business", campus: "Kyambogo" },
+      ];
+
+      // Social proof ticker
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setTickerVisible(false);
+          setTimeout(() => {
+            setTickerIdx(i => (i + 1) % purchaseEvents.length);
+            setTickerVisible(true);
+          }, 500);
+        }, 5000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // Countdown timer
+      useEffect(() => {
+        const tick = () => {
+          const now = new Date();
+          const end = new Date();
+          end.setHours(23, 59, 59, 0);
+          const diff = Math.max(0, end - now);
+          setTimeLeft({
+            h: Math.floor(diff / 3600000),
+            m: Math.floor((diff % 3600000) / 60000),
+            s: Math.floor((diff % 60000) / 1000),
+          });
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // Get category image from first product in that category
+      const getCategoryImage = (catId) => {
+        if (!products || products.length === 0) return '';
+        const p = products.find(p => p.category === catId);
+        return p ? p.image : '';
+      };
+
+      // Get discounted products for Today's Deals
+      const dealProducts = React.useMemo(() => {
+        return (products || [])
+          .filter(p => p.originalPrice && p.price < p.originalPrice)
+          .sort((a, b) => {
+            const aPct = (a.originalPrice - a.price) / a.originalPrice;
+            const bPct = (b.originalPrice - b.price) / b.originalPrice;
+            return bPct - aPct;
+          })
+          .slice(0, 8);
+      }, [products]);
+
+      // Generate random "viewing" counts for products (stable per session)
+      const viewingCounts = React.useMemo(() => {
+        const map = {};
+        (products || []).forEach(p => {
+          map[p.id] = Math.floor(Math.random() * 25) + 3;
+        });
+        return map;
+      }, [products]);
+
+      // Get featured products for landing
+      const featuredProducts = (products || []).filter(p => p.badge).slice(0, 8);
+      const formatPrice = (p) => `UGX ${p.toLocaleString()}`;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white overflow-x-hidden">
+            <div className="fixed inset-0 z-0 pointer-events-none">
+              <video autoPlay loop muted playsInline className="w-full h-full object-cover pointer-events-none opacity-30"
+                src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0c0c0c]/60 via-transparent to-[#0c0c0c]" />
+              <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+            </div>
+          
+          <svg className="absolute w-0 h-0">
+            <filter id="c3-noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0" />
+              <feComposite in2="SourceGraphic" operator="in" result="noise" />
+              <feBlend in="SourceGraphic" in2="noise" mode="multiply" />
+            </filter>
+          </svg>
+
+          <section className="relative z-10 pt-32 md:pt-40 pb-20 text-center flex flex-col items-center px-6">
+            <div className="animate-fade-in-up">
+              <SectionEyebrow label="Uganda's Campus Marketplace" tag={`${(products||[]).length}+ Products · ${(shops||[]).length}+ Sellers`} />
+            </div>
+            <h1 className="mt-6 text-6xl md:text-9xl font-bold tracking-tight leading-[0.9] animate-fade-in-up delay-200">
+              <span className="text-white">Buy & Sell.</span><br/>
+              <span className="animate-shiny" style={{
+                backgroundImage: 'linear-gradient(to right, #091020 0%, #0B2551 12.5%, #A4F4FD 32.5%, #00d2ff 50%, #0B2551 67.5%, #091020 87.5%, #091020 100%)',
+                backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                color: 'transparent', WebkitTextFillColor: 'transparent', filter: 'url(#c3-noise)'
+              }}>Campus Wide.</span>
+            </h1>
+            <p className="mt-8 text-sm md:text-base text-white/40 max-w-lg leading-[1.6] animate-fade-in-up delay-300">
+              The premier marketplace for Ugandan university students. Buy textbooks, electronics, fashion, and food from verified sellers across all campuses. Sell your items with zero hassle.
+            </p>
+            <div className="mt-6 animate-fade-in-up delay-350">
+              <div className="relative max-w-md mx-auto">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur border border-white/10 rounded-full px-4 py-2 animate-pulse-glow focus-within:border-amber-500/40 focus-within:shadow-sm focus-within:shadow-amber-500/10 transition-all">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40 shrink-0">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                  <input type="text" placeholder="Search products, shops, campuses..."
+                    className="bg-transparent border-none outline-none text-sm text-white placeholder-white/30 w-full"
+                    onFocus={() => setShowTrending(true)}
+                    onBlur={() => setTimeout(() => setShowTrending(false), 200)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(e.target.value); setCurrentPage('home'); } }} />
+                </div>
+                {showTrending && (
+                  <div className="absolute top-full left-0 right-0 mt-2 liquid-glass rounded-2xl p-4 z-50 animate-fade-in">
+                    <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Trending searches</div>
+                    <div className="flex flex-wrap gap-2">
+                      {trendingSearches.map((term, i) => (
+                        <button key={i} onMouseDown={() => { setSearchQuery(term); setCurrentPage('home'); }}
+                          className="px-3 py-1.5 rounded-full bg-white/5 text-white/70 text-xs hover:bg-white/10 hover:text-white transition-all">
+                          🔥 {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-8 flex gap-6 overflow-x-auto pb-2 hide-scrollbar animate-fade-in-up delay-375 max-w-2xl mx-auto">
+              {CATEGORIES.filter(c => c.id !== 'all').map((cat, i) => {
+                const count = (products||[]).filter(p => p.category === cat.id).length;
+                const catImg = getCategoryImage(cat.id);
+                return (
+                  <div key={cat.id} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
+                    onClick={() => { setSelectedCategory(cat.id); setCurrentPage('home'); }}>
+                    <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-amber-500/50 group-hover:shadow-lg group-hover:shadow-amber-500/20 transition-all">
+                      {catImg ? (
+                        <img src={catImg} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" onError={onImgError} />
+                      ) : (
+                        <span className="text-2xl">{cat.icon}</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-white/60 whitespace-nowrap">{cat.name}</span>
+                    <span className="text-[8px] text-white/30">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 animate-fade-in-up delay-400">
+              <Button onClick={() => setCurrentPage('home')}>Start Shopping
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1"><path d="m9 18 6-6-6-6"/></svg>
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentPage('sell')}>Start Selling</Button>
+            </div>
+            <p className="mt-4 text-xs text-white/40 animate-fade-in-up delay-500">Available at Makerere, Kyambogo, Mbarara, Gulu & Busitema</p>
+          </section>
+
+          {/* Social proof ticker */}
+          <div className="fixed bottom-6 left-6 z-50 max-w-sm">
+            <div key={tickerIdx} className={`flex items-center gap-3 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl px-5 py-3 shadow-2xl ${tickerVisible ? 'animate-ticker' : 'opacity-0'}`}>
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-lg shrink-0">🛒</div>
+              <div className="min-w-0">
+                <p className="text-xs text-white/80 font-medium truncate">{purchaseEvents[tickerIdx].name} bought <span className="text-amber-400">{purchaseEvents[tickerIdx].item}</span></p>
+                <p className="text-[10px] text-white/40">{purchaseEvents[tickerIdx].campus} · just now</p>
+              </div>
+            </div>
+          </div>
+
+          <section className="relative z-10 w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <div className="liquid-glass rounded-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center animate-fade-in-up delay-500">
+              {[
+                { value: '15,000+', label: 'Active Users' },
+                { value: `${(products||[]).length}+`, label: 'Products Listed' },
+                { value: 'UGX 3.2B', label: 'Total Sales' },
+                { value: `${(shops||[]).length}+`, label: 'Verified Sellers' },
+              ].map((stat, i) => (
+                <div key={i}>
+                  <div className="text-2xl md:text-3xl font-bold text-white">{stat.value}</div>
+                  <div className="text-xs text-white/50 mt-1">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+            </div>
+          </section>
+
+          {/* Today's Deals with Countdown */}
+          {dealProducts.length > 0 && (
+          <section className="relative z-10 w-full px-4 md:px-8 py-12">
+            <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <SectionEyebrow label="Limited Time" />
+                <h2 className="mt-2 text-2xl md:text-4xl font-bold tracking-tight">Today's Deals
+                  <span className="inline-flex items-center gap-1 ml-4 text-base font-mono text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full animate-countdown">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {String(timeLeft.h).padStart(2,'0')}:{String(timeLeft.m).padStart(2,'0')}:{String(timeLeft.s).padStart(2,'0')}
+                  </span>
+                </h2>
+              </div>
+              <Button variant="outline" onClick={() => setCurrentPage('home')}>View All</Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {dealProducts.map((product, i) => {
+                const discountPct = Math.round((1 - product.price / product.originalPrice) * 100);
+                return (
+                <div key={product.id} className="group animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
+                  <div className="liquid-glass rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] card-press relative"
+                    onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
+                    <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] font-bold shadow-lg">
+                      -{discountPct}%
+                    </div>
+                    <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[9px] font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      {viewingCounts[product.id] || 12} watching
+                    </div>
+                    <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
+                                            <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+
+
+                          className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/30">
+                          Quick Add
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <h4 className="text-xs font-medium line-clamp-1">{product.title}</h4>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <p className="text-amber-400 text-sm font-bold">{formatPrice(product.price)}</p>
+                        <span className="text-[10px] text-white/40 line-through">{formatPrice(product.originalPrice)}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] text-yellow-400">{'★'.repeat(Math.floor(product.rating))}</span>
+                        <span className="text-[10px] text-white/40">({product.reviews})</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+            </div>
+          </section>
+          )}
+
+          {/* Featured Products on Landing */}
+          <section className="relative z-10 w-full px-4 md:px-8 py-12">
+            <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <SectionEyebrow label="Trending Now" />
+                <h2 className="mt-2 text-2xl md:text-4xl font-bold tracking-tight section-title-underline">Featured Products</h2>
+              </div>
+              <Button variant="outline" onClick={() => setCurrentPage('home')}>View All</Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {featuredProducts.map((product, i) => (
+                <div key={product.id} className="group animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
+                  <div className="liquid-glass rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] card-press"
+                    onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
+                    <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
+                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      {product.badge && (
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
+                      )}
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        {viewingCounts[product.id] || 8} watching
+                      </div>
+                      {(product.salesCount || 0) > 5 && (
+                        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-white text-[10px] font-bold">🔥 Popular</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                            className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/30">
+                            Quick Add
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="w-1 h-1 rounded-full bg-amber-400" />
+                        <span className="text-[9px] text-white/40 uppercase tracking-wider">{product.condition}</span>
+                      </div>
+                      <h4 className="text-xs font-medium line-clamp-1">{product.title}</h4>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <p className="text-amber-400 text-sm font-bold">{formatPrice(product.price)}</p>
+                        {product.originalPrice && product.price < product.originalPrice && <span className="text-[9px] text-white/40 line-through">{formatPrice(product.originalPrice)}</span>}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] text-yellow-400">{'★'.repeat(Math.floor(product.rating))}</span>
+                        <span className="text-[10px] text-white/40">({product.reviews})</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </div>
+          </section>
+
+          <section className="relative z-10 w-full px-4 md:px-8 py-20 md:py-28">
+            <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <SectionEyebrow label="Why KampusKart" />
+              <h2 className="mt-4 text-3xl md:text-5xl font-bold tracking-tight section-title-underline">Built for students,<br/>by students.</h2>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((f, i) => (
+                <Card key={i} className="animate-fade-in-up" style={{ animationDelay: `${0.1 * i}s` }}>
+                  <div className="text-3xl mb-4">{f.icon}</div>
+                  <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
+                  <p className="text-sm text-white/50 leading-relaxed">{f.desc}</p>
+                </Card>
+              ))}
+            </div>
+            </div>
+          </section>
+
+          <section className="relative z-10 w-full px-4 md:px-8 py-20 md:py-28 border-t border-white/10">
+            <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <SectionEyebrow label="Testimonials" />
+              <h2 className="mt-4 text-3xl md:text-5xl font-bold tracking-tight section-title-underline">Loved by students.</h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {testimonials.map((t, i) => (
+                <Card key={i} className="animate-fade-in-up" style={{ animationDelay: `${0.15 * i}s` }}>
+                  <blockquote className="text-sm text-white/80 leading-[1.6] italic">"{t.quote}"</blockquote>
+                  <figcaption className="mt-6 pt-5 border-t border-white/10">
+                    <div className="text-sm font-semibold">{t.name}</div>
+                    <div className="text-xs text-white/50">{t.role}</div>
+                    <div className="text-xs text-white font-semibold tracking-wide uppercase mt-1">{t.campus}</div>
+                  </figcaption>
+                </Card>
+              ))}
+            </div>
+            </div>
+          </section>
+
+          <section className="relative z-10 w-full px-4 md:px-8 py-20 md:py-32">
+            <div className="max-w-7xl mx-auto">
+            <div className="liquid-glass relative overflow-hidden rounded-3xl px-8 py-16 md:py-24 text-center">
+              <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(600px circle at 50% 0%, rgba(255,255,255,0.15), transparent 70%)' }} />
+              <div className="relative z-10">
+                <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.02] section-title-underline">Your campus.<br/>Your marketplace.</h2>
+                <p className="mt-6 text-white/60 max-w-md mx-auto text-sm leading-[1.6]">
+                  Join thousands of students across Uganda buying and selling everything from textbooks to tech. Verified, secure, and built for campus life.
+                </p>
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Button onClick={() => setCurrentPage('home')}>Start Shopping</Button>
+                  <Button variant="outline" onClick={() => setCurrentPage('sell')}>
+                    Open a Shop
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1"><path d="m9 18 6-6-6-6"/></svg>
+                  </Button>
+                </div>
+              </div>
+            </div>
+            </div>
+          </section>
+
+          {/* Floating bottom signup bar */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-xl border-t border-white/10 px-4 md:px-8 py-3 flex items-center justify-between gap-4 animate-fade-in-up">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-1">
+                <span className="text-lg">🎓</span>
+                <span className="text-sm font-medium text-white">Join 15,000+ students on KampusKart</span>
+              </div>
+              <span className="text-xs text-white/40">Free to browse · No account needed</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button onClick={() => setCurrentPage('home')} className="text-xs px-4 py-2">Start Shopping</Button>
+              <Button variant="outline" onClick={() => { setShowAuth(true); }} className="text-xs px-4 py-2 hidden sm:inline-flex">Sign Up Free</Button>
+            </div>
+          </div>
+
+          <div className="h-16" /> {/* spacer for floating bar */}
+          <footer className="relative z-10 border-t border-white/10 py-12">
+            <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
+              <div className="grid md:grid-cols-4 gap-8 mb-10">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <LogoMark className="w-6 h-6" />
+                    <span className="font-bold">KampusKart</span>
+                  </div>
+                  <p className="text-sm text-white/40">Uganda's premier campus marketplace. Buy, sell, and deliver across all universities.</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-4">Platform</h4>
+                  <div className="space-y-2 text-sm text-white/40">
+                    <div className="hover:text-white cursor-pointer" onClick={() => setCurrentPage('home')}>Browse ({(products||[]).length}+ items)</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => setCurrentPage('shops')}>Shops ({(shops||[]).length}+ sellers)</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => setCurrentPage('sell')}>Sell</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => setCurrentPage('orders')}>Orders</div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-4">Support</h4>
+                  <div className="space-y-2 text-sm text-white/40">
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('help'); setCurrentPage('info'); }}>Help Center</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('disputes'); setCurrentPage('info'); }}>Disputes</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('safety'); setCurrentPage('info'); }}>Safety</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('contact'); setCurrentPage('info'); }}>Contact Us</div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold mb-4">Legal</h4>
+                  <div className="space-y-2 text-sm text-white/40">
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('terms'); setCurrentPage('info'); }}>Terms of Service</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('privacy'); setCurrentPage('info'); }}>Privacy Policy</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('seller-agreement'); setCurrentPage('info'); }}>Seller Agreement</div>
+                    <div className="hover:text-white cursor-pointer" onClick={() => { setInfoTopic('refund'); setCurrentPage('info'); }}>Refund Policy</div>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p className="text-xs text-white/30">© 2026 KampusKart. All rights reserved. Built for Ugandan students.</p>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-white/30">Powered by</span>
+                  <span className="text-xs font-semibold text-white/50">Flutterwave</span>
+                  <span className="text-xs text-white/30">·</span>
+                  <span className="text-xs font-semibold text-white/50">MTN MoMo</span>
+                  <span className="text-xs text-white/30">·</span>
+                  <span className="text-xs font-semibold text-white/50">Airtel Money</span>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    };
+
+    const HomePage = () => {
+      const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, selectedCampus, setSelectedCampus, setCurrentPage, setSelectedProduct, addToCart, products, refreshProducts } = useApp();
+      const [priceRange, setPriceRange] = useState([0, 5000000]);
+      const [showFilters, setShowFilters] = useState(false);
+      const [sortBy, setSortBy] = useState('featured');
+      const [viewMode, setViewMode] = useState('grid');
+
+      useEffect(() => {
+        const params = {};
+        if (selectedCategory !== 'all') params.category = selectedCategory;
+        if (selectedCampus !== 'all') params.campus = selectedCampus;
+        if (searchQuery) params.search = searchQuery;
+        params.minPrice = priceRange[0];
+        params.maxPrice = priceRange[1];
+        if (sortBy === 'price-low') params.sort = 'price_asc';
+        else if (sortBy === 'price-high') params.sort = 'price_desc';
+        else if (sortBy === 'newest') params.sort = 'newest';
+        refreshProducts(params);
+      }, [selectedCategory, selectedCampus, searchQuery, priceRange[0], priceRange[1], sortBy]);
+
+      const displayProducts = React.useMemo(() => {
+        const list = products || [];
+        if (sortBy === 'rating') return [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        return list;
+      }, [products, sortBy]);
+
+      const formatPrice = (p) => `UGX ${p.toLocaleString()}`;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-8 py-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <SectionEyebrow label="Browse" tag={`${displayProducts.length} results`} />
+                <h1 className="text-2xl md:text-3xl font-semibold mt-2">Campus Marketplace</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-white/30">
+                  <option value="featured" className="bg-[#1a1a1a]">Featured</option>
+                  <option value="price-low" className="bg-[#1a1a1a]">Price: Low to High</option>
+                  <option value="price-high" className="bg-[#1a1a1a]">Price: High to Low</option>
+                  <option value="rating" className="bg-[#1a1a1a]">Highest Rated</option>
+                  <option value="newest" className="bg-[#1a1a1a]">Newest</option>
+                </select>
+                <Button variant="outline" className="px-4 py-2" onClick={() => setShowFilters(!showFilters)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                  Filters
+                </Button>
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="liquid-glass rounded-2xl p-6 mb-8 animate-fade-in">
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-3 block">Category</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map(cat => (
+                        <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedCategory === cat.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                          {cat.icon} {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-3 block">Campus</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setSelectedCampus('all')} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedCampus === 'all' ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>All Campuses</button>
+                      {CAMPUSES.map(c => (
+                        <button key={c.id} onClick={() => setSelectedCampus(c.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedCampus === c.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>{c.name}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-3 block">Max Price: {formatPrice(priceRange[1])}</label>
+                    <input type="range" min="0" max="5000000" step="50000" value={priceRange[1]}
+                      onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                       className="w-full accent-amber-500" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {displayProducts.map((product, i) => (
+                <div key={product.id} className="group animate-fade-in-up" style={{ animationDelay: `${0.03 * i}s` }}>
+                  <div className="liquid-glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] card-press"
+                    onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
+                    <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
+                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      {product.badge && (
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase tracking-wider">
+                          {product.badge}
+                        </div>
+                      )}
+                      {product.originalPrice && product.price < product.originalPrice && (
+                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] font-bold shadow-lg shadow-red-500/30">
+                          -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        {((product.id * 17 + 31) % 25) + 3} watching
+                      </div>
+                      {(product.salesCount || 0) > 5 && (
+                        <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded-full bg-orange-500/80 text-white text-[10px] font-bold">
+                          🔥 Popular
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                          className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/30">
+                          Quick Add
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        <span className="text-[10px] text-white/40 uppercase tracking-wider">{product.condition}</span>
+                        <VerifiedBadge status={product.verified ? 'verified' : 'unverified'} />
+                      </div>
+                      <h3 className="text-sm font-medium leading-tight mb-1 line-clamp-2">{product.title}</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <StarRating rating={product.rating} reviews={product.reviews} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-amber-400 text-lg font-bold">{formatPrice(product.price)}</span>
+                          {product.originalPrice && product.price < product.originalPrice && <span className="text-xs text-white/40 line-through">{formatPrice(product.originalPrice)}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mt-2 text-[10px] text-white/40">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {product.seller} · {CAMPUSES.find(c => c.id === product.campus)?.name}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {displayProducts.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="text-6xl mb-4">📦</div>
+                <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
+                <p className="text-sm text-white/50 mb-6">Products matching your search will appear here.</p>
+                <Button onClick={() => { setSelectedCategory('all'); setSelectedCampus('all'); setSearchQuery(''); }}>Clear Filters</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const ProductDetail = () => {
+      const { selectedProduct, setCurrentPage, setSelectedProduct, addToCart, products, refreshOrders, refreshWallet } = useApp();
+      const [quantity, setQuantity] = useState(1);
+      const [deliveryCampus, setDeliveryCampus] = useState('makerere');
+      const [negotiateFee, setNegotiateFee] = useState(false);
+      const [customFee, setCustomFee] = useState(selectedProduct?.deliveryFee || 0);
+      const [showCheckout, setShowCheckout] = useState(false);
+
+      useEffect(() => { setCustomFee(selectedProduct?.deliveryFee || 0); setQuantity(1); setDeliveryCampus('makerere'); setNegotiateFee(false); }, [selectedProduct]);
+
+      if (!selectedProduct) return null;
+      const product = selectedProduct;
+      const campusName = CAMPUSES.find(c => c.id === deliveryCampus)?.name || deliveryCampus;
+      const productDelivery = typeof product.delivery_zones === 'string' ? JSON.parse(product.delivery_zones) : (product.delivery || product.delivery_zones || []);
+      const canDeliver = productDelivery.includes(deliveryCampus);
+      const finalDeliveryFee = negotiateFee ? customFee : product.deliveryFee;
+      const total = product.price * quantity + finalDeliveryFee;
+
+      const related = (products || []).filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+      const formatPrice = (p) => `UGX ${p.toLocaleString()}`;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <button onClick={() => setCurrentPage('home')} className="flex items-center gap-2 text-sm text-white/50 hover:text-white mb-6 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+              Back to Browse
+            </button>
+
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <div className="liquid-glass rounded-2xl overflow-hidden bg-[#1a1a1a]">
+                <img src={product.image} alt={product.title} className="w-full aspect-square object-cover" onError={onImgError} />
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <VerifiedBadge status={product.verified ? 'verified' : 'unverified'} />
+                    <span className="text-xs text-white/40 uppercase tracking-wider">{product.condition}</span>
+                    {product.badge && <span className="px-2 py-0.5 rounded-full bg-campus/20 text-campus text-xs font-medium">{product.badge}</span>}
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-semibold leading-tight">{product.title}</h1>
+                  <div className="flex items-center gap-3 mt-3">
+                    <StarRating rating={product.rating} reviews={product.reviews} />
+                    <span className="text-white/30">·</span>
+                    <span className="text-sm text-white/50">{product.seller}</span>
+                    <span className="text-white/30">·</span>
+                    <span className="text-sm text-white/50">{CAMPUSES.find(c => c.id === product.campus)?.name}</span>
+                  </div>
+                </div>
+
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-bold text-amber-400">{formatPrice(product.price)}</span>
+                    {product.originalPrice && <span className="text-lg text-white/40 line-through">{formatPrice(product.originalPrice)}</span>}
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">+ 10% platform commission (deducted from seller)</p>
+                </div>
+
+                {/* Product Description & Specifications */}
+                <div className="liquid-glass rounded-xl p-5 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      Description
+                    </h3>
+                    <p className="text-sm text-white/60 leading-relaxed">
+                      {product.description || `This ${product.condition.toLowerCase()} ${product.category} item "${product.title}" is listed by ${product.seller} from ${CAMPUSES.find(c => c.id === product.campus)?.name || product.campus}. ${product.badge ? `This product is featured as a "${product.badge}" item. ` : ''}High-quality product suitable for campus life. Contact the seller for more details.`}
+                    </p>
+                  </div>
+                  <div className="border-t border-white/10 pt-4">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      Specifications
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2">
+                        <span className="text-white/40">Category</span>
+                        <span className="text-white font-medium capitalize">{product.category}</span>
+                      </div>
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2">
+                        <span className="text-white/40">Condition</span>
+                        <span className="text-white font-medium">{product.condition}</span>
+                      </div>
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2">
+                        <span className="text-white/40">Location</span>
+                        <span className="text-white font-medium">{CAMPUSES.find(c => c.id === product.campus)?.name || product.campus}</span>
+                      </div>
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2">
+                        <span className="text-white/40">Seller</span>
+                        <span className="text-white font-medium">{product.seller}</span>
+                      </div>
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2 col-span-2">
+                        <span className="text-white/40">Delivery Zones</span>
+                        <span className="text-white font-medium text-right">
+                          {(typeof product.delivery_zones === 'string' ? JSON.parse(product.delivery_zones) : (product.delivery || product.delivery_zones || [])).map(z => CAMPUSES.find(c => c.id === z)?.name || z).join(', ')}
+                        </span>
+                      </div>
+                      {product.originalPrice && (
+                      <div className="flex justify-between bg-white/5 rounded-lg px-3 py-2 col-span-2">
+                        <span className="text-white/40">Savings</span>
+                        <span className="text-amber-400 font-medium">{formatPrice(product.originalPrice - product.price)} ({Math.round((1 - product.price / product.originalPrice) * 100)}% off)</span>
+                      </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Quantity</label>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">-</button>
+                      <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
+                      <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">+</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Deliver To</label>
+                    <select value={deliveryCampus} onChange={(e) => setDeliveryCampus(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30">
+                      {CAMPUSES.map(c => <option key={c.id} value={c.id} className="bg-[#1a1a1a]">{c.name}</option>)}
+                    </select>
+                    {!canDeliver && (
+                      <p className="text-xs text-red-400 mt-2">⚠️ This seller does not deliver to {campusName}. Contact seller to arrange.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Delivery Fee</label>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex-1 p-3 rounded-xl border transition-all cursor-pointer ${!negotiateFee ? 'border-white/30 bg-white/5' : 'border-white/10'}`}
+                        onClick={() => setNegotiateFee(false)}>
+                        <div className="text-sm font-medium">Standard</div>
+                        <div className="text-xs text-white/50">{formatPrice(product.deliveryFee)}</div>
+                      </div>
+                      <div className={`flex-1 p-3 rounded-xl border transition-all cursor-pointer ${negotiateFee ? 'border-white/30 bg-white/5' : 'border-white/10'}`}
+                        onClick={() => setNegotiateFee(true)}>
+                        <div className="text-sm font-medium">Negotiate</div>
+                        <div className="text-xs text-white/50">Chat with seller</div>
+                      </div>
+                    </div>
+                    {negotiateFee && (
+                      <div className="mt-3">
+                        <input type="number" value={customFee} onChange={(e) => setCustomFee(parseInt(e.target.value) || 0)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                          placeholder="Enter agreed delivery fee" />
+                        <p className="text-xs text-white/40 mt-1">Enter the delivery fee you agreed with the seller via chat</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-white/50">Subtotal ({quantity} item{quantity > 1 ? 's' : ''})</span>
+                    <span>{formatPrice(product.price * quantity)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-white/50">Delivery Fee</span>
+                    <span>{formatPrice(finalDeliveryFee)}</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{formatPrice(total)}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Button onClick={() => setShowCheckout(true)} className="w-full justify-center py-4">
+                    Buy Now — {formatPrice(total)}
+                  </Button>
+                  <Button variant="outline" onClick={() => addToCart(product)} className="w-full justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                    Add to Cart
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs text-white/40">
+                  <div className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Escrow Protected
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    72h Auto-Release
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Dispute Support
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="liquid-glass rounded-2xl p-6 mb-12">
+              <h3 className="text-lg font-semibold mb-4">About the Seller</h3>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-campus to-campus-dark flex items-center justify-center text-xl font-bold">
+                  {product.seller.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{product.seller}</span>
+                    <VerifiedBadge status={product.verified ? 'verified' : 'unverified'} />
+                    <span className="px-2 py-0.5 rounded-full bg-white/5 text-white/50 text-xs">{product.sellerType === 'shop' ? 'Registered Shop' : 'Individual Seller'}</span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1 text-sm text-white/50">
+                    <span>⭐ {product.rating} rating</span>
+                    <span>{product.reviews} reviews</span>
+                    <span>{CAMPUSES.find(c => c.id === product.campus)?.name}</span>
+                  </div>
+                </div>
+                <Button variant="outline" className="hidden sm:flex">Message Seller</Button>
+              </div>
+            </div>
+
+            {related.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">You May Also Like</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {related.map(p => (
+                    <div key={p.id} className="liquid-glass rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform card-press group"
+                      onClick={() => { setSelectedProduct(p); window.scrollTo(0, 0); }}>
+                      <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
+                        <img src={p.image} alt={p.title} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                        {p.badge && (
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{p.badge}</div>
+                        )}
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          {((p.id * 17 + 31) % 25) + 3} watching
+                        </div>
+                        {(p.salesCount || 0) > 5 && (
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-white text-[10px] font-bold">🔥 Popular</div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                            className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/30">
+                            Quick Add
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="w-1 h-1 rounded-full bg-amber-400" />
+                          <span className="text-[9px] text-white/40 uppercase tracking-wider">{p.condition}</span>
+                        </div>
+                        <h4 className="text-xs font-medium line-clamp-1">{p.title}</h4>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-amber-400 text-sm font-bold">{formatPrice(p.price)}</span>
+                          {p.originalPrice && p.price < p.originalPrice && <span className="text-[9px] text-white/40 line-through">{formatPrice(p.originalPrice)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showCheckout && (
+              <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                <div className="liquid-glass rounded-3xl p-8 max-w-md w-full animate-fade-in-up">
+                  <h2 className="text-xl font-semibold mb-6">Complete Your Order</h2>
+                  <div className="space-y-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <img src={product.image} alt="" className="w-16 h-16 rounded-xl object-cover" loading="lazy" onError={onImgError} />
+                      <div>
+                        <p className="text-sm font-medium">{product.title}</p>
+                        <p className="text-xs text-white/50">Qty: {quantity} · {campusName}</p>
+                      </div>
+                    </div>
+                    <div className="border-t border-white/10 pt-4 space-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-white/50">Subtotal</span><span>{formatPrice(product.price * quantity)}</span></div>
+                      <div className="flex justify-between"><span className="text-white/50">Delivery</span><span>{formatPrice(finalDeliveryFee)}</span></div>
+                      <div className="flex justify-between font-semibold text-base pt-2 border-t border-white/10"><span>Total</span><span>{formatPrice(total)}</span></div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Payment Method</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-white/20 bg-white/5">
+                          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs">📱</div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">MTN Mobile Money</div>
+                            <div className="text-xs text-white/50">+256 700 123 456</div>
+                          </div>
+                          <div className="w-4 h-4 rounded-full border-2 border-white bg-white" />
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-white/10">
+                          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-xs">📱</div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">Airtel Money</div>
+                            <div className="text-xs text-white/50">+256 707 654 321</div>
+                          </div>
+                          <div className="w-4 h-4 rounded-full border-2 border-white/30" />
+                        </div>
+                      </div>
+                    </div>
+                    <Button className="w-full justify-center py-4 mt-4"
+                      onClick={async () => {
+                        try {
+                          await api.post('/orders', {
+                            product_id: product.id,
+                            quantity,
+                            delivery_to: deliveryCampus,
+                            delivery_fee: finalDeliveryFee,
+                            payment_method: 'mobile_money'
+                          });
+                          refreshOrders();
+                          refreshWallet();
+                          setShowCheckout(false);
+                          setCurrentPage('orders');
+                        } catch (e) {
+                          alert('Order failed: ' + (e.message || 'Please try again'));
+                        }
+                      }}>Pay {formatPrice(total)}</Button>
+                    <Button variant="ghost" className="w-full justify-center" onClick={() => setShowCheckout(false)}>Cancel</Button>
+                  </div>
+                  <p className="text-[10px] text-white/30 text-center mt-4">
+                    Payment held in escrow until delivery confirmed. 72h auto-release.
+                  </p>
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const ShopsPage = () => {
+      const { setCurrentPage, setSelectedShop, shops } = useApp();
+      const [filter, setFilter] = useState('all');
+      const [searchShop, setSearchShop] = useState('');
+
+      const filtered = (shops || []).filter(s => {
+        const matchesFilter = filter === 'all' || s.type === filter;
+        const matchesSearch = !searchShop || s.name.toLowerCase().includes(searchShop.toLowerCase());
+        return matchesFilter && matchesSearch;
+      });
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <SectionEyebrow label="Shops" tag={`${filtered.length} sellers`} />
+                <h1 className="text-2xl md:text-3xl font-semibold mt-2">Campus Sellers</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-white/5 rounded-full px-4 py-2 border border-white/10">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="text" placeholder="Search sellers..." value={searchShop} onChange={(e) => setSearchShop(e.target.value)}
+                    className="bg-transparent border-none outline-none text-sm text-white placeholder-white/30 w-32 ml-2" />
+                </div>
+                {[{ id: 'all', label: 'All' }, { id: 'shop', label: 'Shops' }, { id: 'individual', label: 'Individuals' }].map(f => (
+                  <button key={f.id} onClick={() => setFilter(f.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === f.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((shop, i) => (
+                <Card key={shop.id} className="animate-fade-in-up cursor-pointer" style={{ animationDelay: `${0.05 * i}s` }}
+                  onClick={() => { setSelectedShop(shop); setCurrentPage('shop-profile'); }}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+                      <img src={shop.image} alt={shop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{shop.name}</h3>
+                        <VerifiedBadge status={shop.verified ? 'verified' : 'unverified'} />
+                      </div>
+                      <p className="text-xs text-white/50">{shop.type === 'shop' ? 'Registered Shop' : 'Individual Seller'} · Since {shop.since}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-white/40">
+                        <span>⭐ {shop.rating}</span>
+                        <span>{shop.reviews} reviews</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/50 mb-4 line-clamp-2">{shop.description}</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="liquid-glass rounded-lg p-2">
+                      <div className="text-lg font-bold">{shop.products}</div>
+                      <div className="text-[10px] text-white/40">Products</div>
+                    </div>
+                    <div className="liquid-glass rounded-lg p-2">
+                      <div className="text-lg font-bold">{shop.sales}</div>
+                      <div className="text-[10px] text-white/40">Sales</div>
+                    </div>
+                    <div className="liquid-glass rounded-lg p-2">
+                      <div className="text-lg font-bold">{CAMPUSES.find(c => c.id === shop.campus)?.name.split(' ')[0]}</div>
+                      <div className="text-[10px] text-white/40">Campus</div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="text-6xl mb-4">📝</div>
+                <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
+                <p className="text-sm text-white/50 mb-6">No sellers match your search criteria.</p>
+                <Button onClick={() => { setSearchShop(''); setFilter('all'); }}>Clear Search</Button>
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const ShopProfile = () => {
+      const { selectedShop, setCurrentPage, setSelectedProduct, products, addToCart } = useApp();
+      if (!selectedShop) return null;
+
+      const shopProducts = (products || []).filter(p => p.seller === selectedShop.name);
+      const formatPrice = (p) => `UGX ${p.toLocaleString()}`;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <button onClick={() => setCurrentPage('shops')} className="flex items-center gap-2 text-sm text-white/50 hover:text-white mb-6 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+              Back to Shops
+            </button>
+
+            <div className="liquid-glass rounded-2xl p-6 md:p-8 mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+                  <img src={selectedShop.image} alt={selectedShop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-2xl font-semibold">{selectedShop.name}</h1>
+                    <VerifiedBadge status={selectedShop.verified ? 'verified' : 'unverified'} />
+                    <span className="px-2 py-0.5 rounded-full bg-white/5 text-white/50 text-xs">{selectedShop.type === 'shop' ? 'Registered Shop' : 'Individual Seller'}</span>
+                  </div>
+                  <p className="text-sm text-white/50 mb-3">{selectedShop.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-white/40">
+                    <span className="flex items-center gap-1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> {CAMPUSES.find(c => c.id === selectedShop.campus)?.name}</span>
+                    <span>⭐ {selectedShop.rating} ({selectedShop.reviews} reviews)</span>
+                    <span>📦 {selectedShop.products} products</span>
+                    <span>🛒 {selectedShop.sales} sales</span>
+                    <span>📅 Since {selectedShop.since}</span>
+                  </div>
+                </div>
+                <Button variant="outline">Message</Button>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-semibold mb-4">Products ({shopProducts.length})</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {shopProducts.map((product, i) => (
+                <div key={product.id} className="liquid-glass rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform animate-fade-in-up card-press group"
+                  style={{ animationDelay: `${0.03 * i}s` }}
+                  onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
+                  <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
+                    <img src={product.image} alt={product.title} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                    {product.badge && (
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
+                    )}
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      {((product.id * 17 + 31) % 25) + 3} watching
+                    </div>
+                    {(product.salesCount || 0) > 5 && (
+                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-white text-[10px] font-bold">🔥 Popular</div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                        className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/30">
+                        Quick Add
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="w-1 h-1 rounded-full bg-amber-400" />
+                      <span className="text-[9px] text-white/40 uppercase tracking-wider">{product.condition}</span>
+                    </div>
+                    <h4 className="text-xs font-medium line-clamp-1">{product.title}</h4>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-amber-400 text-sm font-bold">{formatPrice(product.price)}</span>
+                      {product.originalPrice && product.price < product.originalPrice && <span className="text-[9px] text-white/40 line-through">{formatPrice(product.originalPrice)}</span>}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[10px] text-yellow-400">{'★'.repeat(Math.floor(product.rating))}</span>
+                      <span className="text-[10px] text-white/40">({product.reviews})</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const SellPage = () => {
+      const { user, setShowAuth } = useApp();
+      const [step, setStep] = useState(1);
+      const [listingType, setListingType] = useState('individual');
+      const [submitting, setSubmitting] = useState(false);
+      const [error, setError] = useState('');
+      const [formData, setFormData] = useState({
+        title: '', price: '', category: 'electronics', condition: 'Brand New',
+        description: '', deliveryZones: ['makerere'], deliveryFee: '',
+        images: [], returnPolicy: 'no-returns'
+      });
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Please sign in to list a product.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
+            </div>
+          </div>
+        );
+      }
+
+      const handleSubmit = async () => {
+        setSubmitting(true);
+        setError('');
+        try {
+          await api.post('/products', {
+            title: formData.title,
+            price: parseInt(formData.price),
+            category: formData.category,
+            condition: formData.condition,
+            description: formData.description,
+            delivery_zones: formData.deliveryZones,
+            delivery_fee: parseInt(formData.deliveryFee) || 0,
+            return_policy: formData.returnPolicy,
+          });
+          alert('Listing published successfully!');
+          setStep(1);
+          setFormData({ title: '', price: '', category: 'electronics', condition: 'Brand New', description: '', deliveryZones: ['makerere'], deliveryFee: '', images: [], returnPolicy: 'no-returns' });
+        } catch (err) {
+          setError(err.message || 'Failed to publish listing.');
+        } finally {
+          setSubmitting(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full max-w-2xl mx-auto px-8 py-8">
+            <SectionEyebrow label="Sell" />
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">List Your Item</h1>
+
+            <div className="flex items-center gap-4 mb-8">
+              {[1, 2, 3].map(s => (
+                <div key={s} className="flex items-center gap-4 flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s <= step ? 'bg-white text-black' : 'bg-white/10 text-white/40'}`}>
+                    {s}
+                  </div>
+                  {s < 3 && <div className={`flex-1 h-px ${s < step ? 'bg-white' : 'bg-white/10'}`} />}
+                </div>
+              ))}
+            </div>
+
+            {step === 1 && (
+              <div className="space-y-6 animate-fade-in-up">
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-3 block">Seller Type</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className={`p-4 rounded-xl border cursor-pointer transition-all ${listingType === 'individual' ? 'border-white/30 bg-white/5' : 'border-white/10'}`}
+                      onClick={() => setListingType('individual')}>
+                      <div className="text-2xl mb-2">👤</div>
+                      <div className="font-medium">Individual Seller</div>
+                      <div className="text-xs text-white/50 mt-1">10% commission per sale</div>
+                    </div>
+                    <div className={`p-4 rounded-xl border cursor-pointer transition-all ${listingType === 'shop' ? 'border-white/30 bg-white/5' : 'border-white/10'}`}
+                      onClick={() => setListingType('shop')}>
+                      <div className="text-2xl mb-2">🏪</div>
+                      <div className="font-medium">Registered Shop</div>
+                      <div className="text-xs text-white/50 mt-1">UGX 50,000/month subscription</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Product Title</label>
+                  <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30"
+                    placeholder="e.g. iPhone 14 Pro Max 256GB" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Price (UGX)</label>
+                    <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30"
+                      placeholder="e.g. 3500000" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Category</label>
+                    <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30">
+                      {CATEGORIES.filter(c => c.id !== 'all').map(c => <option key={c.id} value={c.id} className="bg-[#1a1a1a]">{c.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Condition</label>
+                  <div className="flex gap-3">
+                    {['Brand New', 'Second Hand', 'Refurbished'].map(c => (
+                      <button key={c} onClick={() => setFormData({...formData, condition: c})}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${formData.condition === c ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button onClick={() => setStep(2)} className="w-full justify-center">Continue</Button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-6 animate-fade-in-up">
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Description</label>
+                  <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30 h-32 resize-none"
+                    placeholder="Describe your product in detail..." />
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Delivery Zones</label>
+                  <div className="flex flex-wrap gap-2">
+                    {CAMPUSES.map(c => (
+                      <button key={c.id}
+                        onClick={() => {
+                          const zones = formData.deliveryZones.includes(c.id)
+                            ? formData.deliveryZones.filter(z => z !== c.id)
+                            : [...formData.deliveryZones, c.id];
+                          setFormData({...formData, deliveryZones: zones});
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.deliveryZones.includes(c.id) ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-white/40 mt-2">Select all campuses you can deliver to</p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Default Delivery Fee (UGX)</label>
+                  <input type="number" value={formData.deliveryFee} onChange={(e) => setFormData({...formData, deliveryFee: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30 placeholder-white/30"
+                    placeholder="e.g. 5000 (buyers can negotiate this)" />
+                  <p className="text-xs text-white/40 mt-1">This is negotiable per order</p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Return Policy</label>
+                  <select value={formData.returnPolicy} onChange={(e) => setFormData({...formData, returnPolicy: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30">
+                    <option value="no-returns" className="bg-[#1a1a1a]">No Returns</option>
+                    <option value="3-day" className="bg-[#1a1a1a]">3-Day Return</option>
+                    <option value="exchange" className="bg-[#1a1a1a]">Exchange Only</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1 justify-center">Back</Button>
+                  <Button onClick={() => setStep(3)} className="flex-1 justify-center">Continue</Button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-6 animate-fade-in-up">
+                <div className="liquid-glass rounded-xl p-6 text-center">
+                  <div className="text-4xl mb-4">📸</div>
+                  <h3 className="font-semibold mb-2">Upload Photos</h3>
+                  <p className="text-sm text-white/50 mb-4">Add up to 5 photos of your product</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} className="aspect-square rounded-xl border-2 border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-white/40 transition-colors">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="liquid-glass rounded-xl p-6">
+                  <h3 className="font-semibold mb-4">Listing Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between"><span className="text-white/50">Title</span><span>{formData.title || 'Not set'}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Price</span><span>{formData.price ? `UGX ${parseInt(formData.price).toLocaleString()}` : 'Not set'}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Category</span><span>{CATEGORIES.find(c => c.id === formData.category)?.name}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Condition</span><span>{formData.condition}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Delivery To</span><span>{formData.deliveryZones.map(z => CAMPUSES.find(c => c.id === z)?.name.split(' ')[0]).join(', ')}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Return Policy</span><span>{formData.returnPolicy === 'no-returns' ? 'No Returns' : formData.returnPolicy === '3-day' ? '3-Day Return' : 'Exchange Only'}</span></div>
+                    <div className="flex justify-between"><span className="text-white/50">Platform Fee</span><span>{listingType === 'shop' ? 'UGX 50,000/month' : '10% per sale'}</span></div>
+                  </div>
+                </div>
+
+                {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setStep(2)} className="flex-1 justify-center" disabled={submitting}>Back</Button>
+                  <Button onClick={handleSubmit} className="flex-1 justify-center" disabled={submitting}>{submitting ? 'Publishing...' : 'Publish Listing'}</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const OrdersPage = () => {
+      const { setCurrentPage, orders, user, refreshOrders, wallet, setWallet } = useApp();
+      const [filter, setFilter] = useState('all');
+      const [selectedOrder, setSelectedOrder] = useState(null);
+
+      const filtered = filter === 'all' ? (orders || []) : (orders || []).filter(o => o.status === filter);
+      const formatPrice = (p) => `UGX ${(p || 0).toLocaleString()}`;
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Please sign in to view your orders.</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <SectionEyebrow label="Orders" tag={`${(orders||[]).length} total`} />
+                <h1 className="text-2xl md:text-3xl font-semibold mt-2">My Orders</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                {[{ id: 'all', label: 'All' }, { id: 'pending', label: 'Pending' }, { id: 'shipped', label: 'Shipped' }, { id: 'delivered', label: 'Delivered' }, { id: 'disputed', label: 'Disputes' }].map(f => (
+                  <button key={f.id} onClick={() => setFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filter === f.id ? 'bg-white text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {filtered.map((order, i) => (
+                <Card key={order.id} className="animate-fade-in-up" style={{ animationDelay: `${0.03 * i}s` }}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xs font-mono text-white/40">{order.id}</span>
+                        <StatusBadge status={order.status} />
+                        <span className="text-xs text-white/40">{order.created_at?.split('T')[0]}</span>
+                      </div>
+                      <h3 className="font-medium">{order.product_title}</h3>
+                      <div className="flex items-center gap-4 mt-1 text-xs text-white/50">
+                        <span>Seller: {order.seller_name}</span>
+                        <span>From: {CAMPUSES.find(c => c.id === order.campus)?.name}</span>
+                        <span>Delivery: {CAMPUSES.find(c => c.id === order.campus)?.name}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{formatPrice(order.total)}</div>
+                      <div className="text-xs text-white/40">+ {formatPrice(order.delivery_fee)} delivery</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {order.status === 'delivered' && (
+                        <Button variant="success" className="px-4 py-2 text-xs"
+                          onClick={async () => {
+                            try { await api.put(`/orders/${order.id}/status`, { status: 'completed' }); refreshOrders(); refreshWallet(); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>Confirm Receipt</Button>
+                      )}
+                      {order.status === 'pending' && (
+                        <Button variant="outline" className="px-4 py-2 text-xs">Track</Button>
+                      )}
+                      {order.status === 'disputed' && (
+                        <Button variant="danger" className="px-4 py-2 text-xs">View Dispute</Button>
+                      )}
+                      <Button variant="ghost" className="px-3 py-2" onClick={() => setSelectedOrder(order)}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"/></svg>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="text-6xl mb-4">🛒</div>
+                <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
+                <p className="text-sm text-white/50 mb-6">Your orders will appear here once you start shopping.</p>
+                <Button onClick={() => setCurrentPage('home')}>Browse Products</Button>
+              </div>
+            )}
+
+            {selectedOrder && (
+              <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                <div className="liquid-glass rounded-3xl p-8 max-w-lg w-full animate-fade-in-up max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold">Order Details</h2>
+                    <button onClick={() => setSelectedOrder(null)} className="text-white/50 hover:text-white">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between"><span className="text-sm text-white/50">Order ID</span><span className="text-sm font-mono">{selectedOrder.id}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-sm text-white/50">Status</span><StatusBadge status={selectedOrder.status} /></div>
+                    <div className="flex items-center justify-between"><span className="text-sm text-white/50">Product</span><span className="text-sm">{selectedOrder.product_title}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-sm text-white/50">Seller</span><span className="text-sm">{selectedOrder.seller_name}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-sm text-white/50">Delivery</span><span className="text-sm">To: {CAMPUSES.find(c => c.id === selectedOrder.campus)?.name}</span></div>
+                    <div className="border-t border-white/10 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm"><span className="text-white/50">Subtotal</span><span>{formatPrice((selectedOrder.total || 0) - (selectedOrder.delivery_fee || 0))}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-white/50">Delivery Fee</span><span>{formatPrice(selectedOrder.delivery_fee)}</span></div>
+                      <div className="flex justify-between font-semibold"><span>Total</span><span>{formatPrice(selectedOrder.total)}</span></div>
+                    </div>
+
+                    <div className="liquid-glass rounded-xl p-4 mt-4">
+                      <h4 className="text-sm font-semibold mb-3">Escrow Timeline</h4>
+                      <div className="space-y-3">
+                        {[
+                          { label: 'Order Placed', done: true, time: selectedOrder.created_at?.split('T')[0] },
+                          { label: 'Payment Received (Escrow)', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status), time: selectedOrder.created_at?.split('T')[0] },
+                          { label: 'Item Shipped', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status), time: selectedOrder.status === 'pending' ? 'Pending' : '2026-05-27' },
+                          { label: 'Delivery Confirmed', done: ['delivered', 'completed'].includes(selectedOrder.status), time: selectedOrder.status === 'delivered' ? 'Awaiting confirmation' : selectedOrder.status === 'completed' ? '2026-05-26' : 'Pending' },
+                          { label: 'Funds Released', done: selectedOrder.status === 'completed', time: selectedOrder.status === 'completed' ? '2026-05-26' : 'Pending' },
+                        ].map((step, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step.done ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-white/30'}`}>
+                              {step.done ? '✓' : (i + 1)}
+                            </div>
+                            <div className="flex-1">
+                              <div className={`text-sm ${step.done ? 'text-white' : 'text-white/40'}`}>{step.label}</div>
+                            </div>
+                            <div className="text-xs text-white/30">{step.time}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedOrder.status === 'delivered' && (
+                      <div className="flex gap-3 mt-4">
+                        <Button variant="success" className="flex-1 justify-center"
+                          onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'completed' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>I Received This</Button>
+                        <Button variant="danger" className="flex-1 justify-center"
+                          onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>Report Issue</Button>
+                      </div>
+                    )}
+
+                    {selectedOrder.status === 'pending' && (
+                      <Button variant="danger" className="w-full justify-center mt-4"
+                        onClick={async () => {
+                          try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'cancelled' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                        }}>Request Cancellation</Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const WalletPage = () => {
+      const { user, wallet, setShowAuth, refreshWallet } = useApp();
+      const [withdrawAmount, setWithdrawAmount] = useState('');
+      const [showWithdraw, setShowWithdraw] = useState(false);
+      const [showTopUp, setShowTopUp] = useState(false);
+      const [topUpAmount, setTopUpAmount] = useState('');
+      const [activeTab, setActiveTab] = useState('balance');
+      const [transactions, setTransactions] = useState([]);
+      const [walletLoading, setWalletLoading] = useState(false);
+
+      const loadTransactions = () => {
+        setWalletLoading(true);
+        api.get('/wallet/transactions')
+          .then(d => setTransactions(d.transactions || d))
+          .catch(() => {})
+          .finally(() => setWalletLoading(false));
+      };
+
+      useEffect(() => {
+        if (user) loadTransactions();
+      }, [user]);
+
+      const formatPrice = (p) => `UGX ${(p || 0).toLocaleString()}`;
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Please sign in to access your wallet.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+            <SectionEyebrow label="Wallet" />
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">My Wallet</h1>
+
+            <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <Card className="md:col-span-2 animate-pulse-glow">
+                <div className="text-xs text-white/50 uppercase tracking-wider mb-2">Available Balance</div>
+                <div className="text-4xl font-bold">{formatPrice(wallet.balance)}</div>
+                <div className="flex items-center gap-4 mt-4">
+                  <Button onClick={() => setShowWithdraw(true)} className="px-6 py-2 text-xs">Withdraw</Button>
+                  <Button variant="outline" onClick={() => setShowTopUp(true)} className="px-6 py-2 text-xs">Top Up</Button>
+                </div>
+              </Card>
+              <div className="space-y-4">
+                <Card>
+                  <div className="text-xs text-white/50 uppercase tracking-wider mb-1">Pending</div>
+                  <div className="text-xl font-bold">{formatPrice(wallet.pending)}</div>
+                  <div className="text-xs text-white/40 mt-1">In escrow</div>
+                </Card>
+                <Card>
+                  <div className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Earned</div>
+                  <div className="text-xl font-bold">{formatPrice(wallet.totalEarned)}</div>
+                  <div className="text-xs text-white/40 mt-1">Lifetime</div>
+                </Card>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-6 border-b border-white/10">
+              {[{ id: 'balance', label: 'Transactions' }, { id: 'escrow', label: 'Escrow' }, { id: 'payouts', label: 'Payouts' }].map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === tab.id ? 'text-white border-white' : 'text-white/40 border-transparent hover:text-white/60'}`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {walletLoading ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="skeleton h-20 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">💰</div>
+                  <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
+                  <p className="text-sm text-white/50">Your transactions will appear here.</p>
+                </div>
+              ) : (
+                transactions.map((t, i) => (
+                  <div key={t.id} className="liquid-glass rounded-xl p-4 flex items-center justify-between animate-fade-in-up" style={{ animationDelay: `${0.03 * i}s` }}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'credit' ? 'bg-amber-500/20 text-amber-400' : t.type === 'debit' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                        {t.type === 'credit' ? '↓' : t.type === 'debit' ? '↑' : '↺'}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{t.description || t.desc}</div>
+                        <div className="text-xs text-white/40">{t.date || t.created_at} · {t.status}</div>
+                      </div>
+                    </div>
+                    <div className={`text-sm font-semibold ${t.type === 'credit' ? 'text-amber-400' : t.type === 'debit' ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {t.type === 'credit' ? '+' : t.type === 'debit' ? '-' : ''}{formatPrice(t.amount)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {showWithdraw && (
+              <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                <div className="liquid-glass rounded-3xl p-8 max-w-md w-full animate-fade-in-up">
+                  <h2 className="text-xl font-semibold mb-2">Withdraw Funds</h2>
+                  <p className="text-sm text-white/50 mb-6">Available: {formatPrice(wallet.balance)}</p>
+                  <form onSubmit={async (e) => { e.preventDefault(); try { await api.post('/wallet/withdraw', { amount: parseInt(withdrawAmount), method: 'mtn', account_number: '+256700123456' }); refreshWallet(); loadTransactions(); alert('Withdrawal initiated!'); setShowWithdraw(false); setWithdrawAmount(''); } catch (err) { alert(err.message); } }} className="space-y-4">
+                    <div>
+                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Amount (UGX)</label>
+                      <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} required min="10000"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                        placeholder="e.g. 100000" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Withdraw To</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-white/20 bg-white/5">
+                          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs">📱</div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">MTN Mobile Money</div>
+                            <div className="text-xs text-white/50">+256 700 123 456</div>
+                          </div>
+                          <div className="w-4 h-4 rounded-full border-2 border-white bg-white" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="liquid-glass rounded-xl p-4 text-xs text-white/50">
+                      <p>⚠️ Withdrawals are processed within 24 hours. Minimum withdrawal: UGX 10,000.</p>
+                    </div>
+                    <Button type="submit" className="w-full justify-center py-4">
+                      Withdraw {withdrawAmount ? formatPrice(parseInt(withdrawAmount)) : ''}
+                    </Button>
+                    <Button variant="ghost" type="button" className="w-full justify-center" onClick={() => setShowWithdraw(false)}>Cancel</Button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {showTopUp && (
+              <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                <div className="liquid-glass rounded-3xl p-8 max-w-md w-full animate-fade-in-up">
+                  <h2 className="text-xl font-semibold mb-2">Top Up Wallet</h2>
+                  <form onSubmit={async (e) => { e.preventDefault(); try { await api.post('/wallet/topup', { amount: parseInt(topUpAmount) }); refreshWallet(); loadTransactions(); alert('Top-up initiated! Follow payment instructions.'); setShowTopUp(false); setTopUpAmount(''); } catch (err) { alert(err.message); } }} className="space-y-4">
+                    <div>
+                      <label className="text-xs text-white/50 uppercase tracking-wider mb-2 block">Amount (UGX)</label>
+                      <input type="number" value={topUpAmount} onChange={(e) => setTopUpAmount(e.target.value)} required min="1000"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                        placeholder="e.g. 50000" />
+                    </div>
+                    <Button type="submit" className="w-full justify-center py-4">
+                      Top Up {topUpAmount ? formatPrice(parseInt(topUpAmount)) : ''}
+                    </Button>
+                    <Button variant="ghost" type="button" className="w-full justify-center" onClick={() => setShowTopUp(false)}>Cancel</Button>
+                  </form>
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const NotificationsPage = () => {
+      const { notifications, markNotificationRead, markAllNotificationsRead, user, setShowAuth } = useApp();
+
+      const icons = {
+        order: '📦',
+        message: '💬',
+        payment: '💰',
+        system: '🔔',
+      };
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Please sign in to view notifications.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
+            </div>
+          </div>
+        );
+      }
+
+      const unread = (notifications || []).filter(n => !n.read).length;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full max-w-2xl mx-auto px-8 py-8">
+            <div className="flex items-center justify-between mb-2">
+              <SectionEyebrow label="Notifications" tag={`${unread} unread`} />
+              {unread > 0 && (
+                <button onClick={markAllNotificationsRead} className="text-xs text-brand hover:text-white transition-colors">
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">Notifications</h1>
+
+            <div className="space-y-3">
+              {(notifications || []).map((n, i) => (
+                <div key={n.id} 
+                  className={`liquid-glass rounded-xl p-4 flex items-start gap-4 cursor-pointer transition-all ${!n.read ? 'bg-white/[0.03]' : ''}`}
+                  onClick={() => markNotificationRead(n.id)}>
+                  <div className="text-2xl">{icons[n.type] || '🔔'}</div>
+                  <div className="flex-1">
+                    <p className={`text-sm ${!n.read ? 'text-white font-medium' : 'text-white/70'}`}>{n.message}</p>
+                    <p className="text-xs text-white/40 mt-1">{n.time || n.created_at}</p>
+                  </div>
+                  {!n.read && <div className="w-2 h-2 rounded-full bg-brand mt-2" />}
+                </div>
+              ))}
+            </div>
+
+            {(notifications || []).length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="text-6xl mb-4">🔔</div>
+                <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
+                <p className="text-sm text-white/50">Notifications about your orders and account will appear here.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const ProfilePage = () => {
+      const { user, setShowAuth, logout, currentPage, setCurrentPage, orders, products } = useApp();
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Please sign in to view your profile.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
+            </div>
+          </div>
+        );
+      }
+
+      const userOrders = (orders || []).length;
+      const userProducts = (products || []).filter(p => p.seller === user.name).length;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full max-w-2xl mx-auto px-8 py-8">
+            <SectionEyebrow label="Profile" />
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">My Profile</h1>
+
+            <div className="liquid-glass rounded-2xl p-6 mb-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-20 h-20 rounded-full bg-[#1a1a1a] overflow-hidden flex-shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-campus to-campus-dark flex items-center justify-center text-3xl font-bold">
+                      {user.name?.charAt(0) || '?'}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold">{user.name}</h2>
+                    <VerifiedBadge status={user.verified ? 'verified' : 'unverified'} />
+                  </div>
+                  <p className="text-sm text-white/50">{user.email}</p>
+                  {user.phone && <p className="text-sm text-white/50">{user.phone}</p>}
+                  <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-white/5 text-white/50 text-xs">{user.type === 'shop' ? 'Registered Shop' : user.type === 'seller' ? 'Individual Seller' : 'Buyer'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="liquid-glass rounded-lg p-3">
+                  <div className="text-xl font-bold">{userOrders}</div>
+                  <div className="text-[10px] text-white/40">Orders</div>
+                </div>
+                <div className="liquid-glass rounded-lg p-3">
+                  <div className="text-xl font-bold">{userProducts}</div>
+                  <div className="text-[10px] text-white/40">Listings</div>
+                </div>
+                <div className="liquid-glass rounded-lg p-3">
+                  <div className="text-xl font-bold">{user.rating ? user.rating : '—'}</div>
+                  <div className="text-[10px] text-white/40">Rating</div>
+                </div>
+              </div>
+              {user.description && (
+                <p className="text-sm text-white/50 mt-4 pt-4 border-t border-white/10">{user.description}</p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { label: 'Edit Profile', icon: '✏️' },
+                { label: 'Verification', icon: '✅' },
+                { label: 'Delivery Addresses', icon: '📍' },
+                { label: 'Payment Methods', icon: '💳' },
+                { label: 'Settings', icon: '⚙️' },
+                { label: 'Help & Support', icon: '❓' },
+                { label: 'Log Out', icon: '🚪', danger: true, action: () => { logout(); setCurrentPage('landing'); } },
+              ].map((item, i) => (
+                <div key={i} className="liquid-glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors"
+                  onClick={item.action}>
+                  <span>{item.icon}</span>
+                  <span className={`flex-1 text-sm ${item.danger ? 'text-red-400' : ''}`}>{item.label}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const AdminPanel = () => {
+      const { user, setShowAuth, setCurrentPage } = useApp();
+      const [activeTab, setActiveTab] = useState('verification');
+      const [stats, setStats] = useState(null);
+      const [verifications, setVerifications] = useState([]);
+      const [disputes, setDisputes] = useState([]);
+      const [payouts, setPayouts] = useState([]);
+      const [listings, setListings] = useState([]);
+      const [error, setError] = useState('');
+
+      useEffect(() => {
+        if (!user || user.type !== 'admin') return;
+        Promise.all([
+          api.get('/admin/stats'),
+          api.get('/admin/verifications'),
+          api.get('/admin/disputes'),
+          api.get('/admin/payouts'),
+          api.get('/admin/listings'),
+        ]).then(([s, v, d, p, l]) => {
+          setStats(s);
+          setVerifications(v.verifications || []);
+          setDisputes(d.disputes || []);
+          setPayouts(p.payouts || []);
+          setListings(l.listings || []);
+        }).catch(err => setError(err.message));
+      }, [user]);
+
+      if (!user) {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
+              <p className="text-sm text-white/50 mb-4">Admin access only.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
+            </div>
+          </div>
+        );
+      }
+
+      if (user.type !== 'admin') {
+        return (
+          <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+            <div className="w-full px-8 py-8 text-center">
+              <div className="text-4xl mb-4">🚫</div>
+              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <p className="text-sm text-white/50 mb-4">Only admins can access this page.</p>
+              <Button onClick={() => setCurrentPage('home')}>Go Home</Button>
+            </div>
+          </div>
+        );
+      }
+
+      const handleVerification = async (id, status) => {
+        try {
+          await api.put(`/admin/verifications/${id}`, { status });
+          setVerifications(prev => prev.map(v => v.id === id ? { ...v, status } : v));
+        } catch (err) { alert(err.message); }
+      };
+
+      const handleDispute = async (id, status) => {
+        try {
+          await api.put(`/admin/disputes/${id}`, { status });
+          setDisputes(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+        } catch (err) { alert(err.message); }
+      };
+
+      const handlePayout = async (id) => {
+        try {
+          await api.put(`/admin/payouts/${id}`);
+          setPayouts(prev => prev.filter(p => p.id !== id));
+        } catch (err) { alert(err.message); }
+      };
+
+      const handleToggleListing = async (id) => {
+        try {
+          const res = await api.put(`/admin/listings/${id}/suspend`);
+          setListings(prev => prev.map(l => l.id === id ? { ...l, status: res.status } : l));
+        } catch (err) { alert(err.message); }
+      };
+
+      const statCards = stats ? [
+        { label: 'Pending Verifications', value: stats.pendingVerifications, color: 'text-yellow-400' },
+        { label: 'Open Disputes', value: stats.openDisputes, color: 'text-red-400' },
+        { label: 'Pending Payouts', value: stats.pendingPayouts, color: 'text-blue-400' },
+        { label: 'Total Users', value: stats.totalUsers, color: 'text-amber-400' },
+      ] : [];
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-8 py-8">
+            <SectionEyebrow label="Admin" tag="Moderation Panel" />
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">Admin Dashboard</h1>
+
+            {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {statCards.map((stat, i) => (
+                <Card key={i}>
+                  <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-white/50 mt-1">{stat.label}</div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4 mb-6 border-b border-white/10">
+              {[{ id: 'verification', label: 'Verifications' }, { id: 'disputes', label: 'Disputes' }, { id: 'payouts', label: 'Payouts' }, { id: 'listings', label: 'Listings' }].map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === tab.id ? 'text-white border-white' : 'text-white/40 border-transparent hover:text-white/60'}`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'verification' && (
+              <div className="space-y-3">
+                {verifications.map((v, i) => (
+                  <Card key={v.id} className="animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{v.user_name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-white/5 text-white/50 text-xs">{v.type === 'student' ? 'Student' : 'Business'}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${v.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : v.status === 'approved' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>{v.status}</span>
+                        </div>
+                        <div className="text-xs text-white/50 mt-1">{CAMPUSES.find(c => c.id === v.campus)?.name} · Submitted {new Date(v.submitted_at).toLocaleDateString()}</div>
+                      </div>
+                      {v.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button variant="success" className="px-4 py-2 text-xs" onClick={() => handleVerification(v.id, 'approved')}>Approve</Button>
+                          <Button variant="danger" className="px-4 py-2 text-xs" onClick={() => handleVerification(v.id, 'rejected')}>Reject</Button>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+                {verifications.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-5xl mb-4">📝</div>
+                    <h3 className="text-lg font-bold mb-2">Nothing here yet</h3>
+                    <p className="text-sm text-white/50">Verification requests will appear here.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'disputes' && (
+              <div className="space-y-3">
+                {disputes.map((d, i) => (
+                  <Card key={d.id} className="animate-fade-in-up">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-white/40">{d.id}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${d.status === 'open' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>{d.status}</span>
+                        </div>
+                        <div className="text-sm mt-1">{d.issue}</div>
+                        <div className="text-xs text-white/50 mt-1">Order: {d.order_id} · Amount: UGX {d.amount.toLocaleString()}</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold">UGX {d.amount.toLocaleString()}</span>
+                        {d.status === 'open' && (
+                          <div className="flex gap-2">
+                            <Button variant="success" className="px-4 py-2 text-xs" onClick={() => handleDispute(d.id, 'refunded')}>Refund Buyer</Button>
+                            <Button variant="outline" className="px-4 py-2 text-xs" onClick={() => handleDispute(d.id, 'resolved')}>Release to Seller</Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {disputes.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-5xl mb-4">⚖️</div>
+                    <h3 className="text-lg font-bold mb-2">Nothing here yet</h3>
+                    <p className="text-sm text-white/50">No disputes to review at this time.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'payouts' && (
+              <div className="space-y-3">
+                {payouts.map((p, i) => (
+                  <Card key={p.id} className="animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <div className="font-medium">{p.user_name}</div>
+                        <div className="text-xs text-white/50">{p.description} · {p.phone}</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold">UGX {p.amount.toLocaleString()}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{p.status}</span>
+                        <Button variant="outline" className="px-4 py-2 text-xs" onClick={() => handlePayout(p.id)}>Process</Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {payouts.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-5xl mb-4">💰</div>
+                    <h3 className="text-lg font-bold mb-2">Nothing here yet</h3>
+                    <p className="text-sm text-white/50">No pending payouts at this time.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'listings' && (
+              <div className="space-y-3">
+                {listings.map((p, i) => (
+                  <Card key={p.id} className="animate-fade-in-up" style={{ animationDelay: `${0.05 * i}s` }}>
+                    <div className="flex items-center gap-4">
+                      <img src={p.image} alt="" className="w-12 h-12 rounded-lg object-cover" loading="lazy" onError={onImgError} />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{p.title}</div>
+                        <div className="text-xs text-white/50">{p.seller_name} · {CATEGORIES.find(c => c.id === p.category)?.name} · <span className={p.status === 'active' ? 'text-amber-400' : 'text-red-400'}>{p.status}</span></div>
+                      </div>
+                      <span className="text-sm font-semibold">UGX {p.price.toLocaleString()}</span>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" className="px-3 py-1 text-xs">Edit</Button>
+                        <Button variant="danger" className="px-3 py-1 text-xs" onClick={() => handleToggleListing(p.id)}>
+                          {p.status === 'active' ? 'Suspend' : 'Activate'}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {listings.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-5xl mb-4">📝</div>
+                    <h3 className="text-lg font-bold mb-2">Nothing here yet</h3>
+                    <p className="text-sm text-white/50">No reported listings at this time.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const InfoPage = () => {
+      const { infoTopic, setCurrentPage, setInfoTopic } = useApp();
+      const topics = {
+        help: {
+          title: 'Help Center',
+          icon: '❓',
+          content: (
+            <div className="space-y-6">
+              <p className="text-white/70">Welcome to KampusKart Help Center. Find answers to common questions below.</p>
+              <div className="space-y-4">
+                {[
+                  { q: 'How do I place an order?', a: 'Browse products, click on an item to view details, select quantity and delivery campus, then click "Buy Now" to checkout.' },
+                  { q: 'How do I sell on KampusKart?', a: 'Sign up as a seller, verify your account, and click "Sell" in the navigation to list your products.' },
+                  { q: 'How does delivery work?', a: 'Each seller sets their delivery zones and fees. You can see if they deliver to your campus on the product page.' },
+                  { q: 'How do I track my order?', a: 'Go to Orders page to see the status. The seller updates the status from pending → shipped → delivered.' },
+                  { q: 'What payment methods are accepted?', a: 'Mobile Money (MTN, Airtel) is supported. Cash on delivery is available for local campus deliveries.' },
+                  { q: 'How do I get a refund?', a: 'Contact the seller first. If unresolved, open a dispute from your Orders page and an admin will review.' },
+                ].map((faq, i) => (
+                  <div key={i} className="liquid-glass rounded-xl p-4">
+                    <div className="font-medium text-sm mb-1">{faq.q}</div>
+                    <p className="text-sm text-white/50">{faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        },
+        disputes: {
+          title: 'Disputes & Resolution',
+          icon: '⚖️',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>If you have an issue with an order, you can open a dispute from the Orders page within 7 days of delivery.</p>
+              <div className="liquid-glass rounded-xl p-4">
+                <h4 className="font-semibold text-white mb-2">How it works</h4>
+                <ul className="space-y-2 list-disc list-inside text-white/50">
+                  <li>First, contact the seller directly to resolve the issue</li>
+                  <li>If no resolution within 48 hours, open a dispute on the order</li>
+                  <li>An admin will review the case and evidence from both parties</li>
+                  <li>Decisions are usually made within 3-5 business days</li>
+                  <li>Resolved disputes result in either a refund to buyer or payment release to seller</li>
+                </ul>
+              </div>
+              <p className="text-white/50">For urgent issues, contact our dispute resolution team at disputes@kampuskart.ug</p>
+            </div>
+          )
+        },
+        safety: {
+          title: 'Safety Guidelines',
+          icon: '🛡️',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>Your safety is our priority. Follow these guidelines for a secure marketplace experience.</p>
+              <div className="grid gap-3">
+                {[
+                  { icon: '🔒', title: 'Keep Communications on Platform', desc: 'Never take conversations off KampusKart. Our messaging system keeps records for dispute resolution.' },
+                  { icon: '💰', title: 'Use Escrow Payments', desc: 'Always pay through the platform. Never send money directly to sellers via mobile money.' },
+                  { icon: '✅', title: 'Check Seller Verification', desc: 'Look for verified badges. Verified sellers have submitted identification and campus documentation.' },
+                  { icon: '📍', title: 'Meet in Safe Locations', desc: 'For local pickups, arrange to meet in well-lit campus areas like the library or student center.' },
+                  { icon: '📸', title: 'Document Everything', desc: 'Take photos of items upon delivery. Screenshot conversations. Evidence helps resolve disputes faster.' },
+                  { icon: '🚨', title: 'Report Suspicious Activity', desc: 'Use the report button on listings or contact safety@kampuskart.ug immediately.' },
+                ].map((tip, i) => (
+                  <div key={i} className="liquid-glass rounded-xl p-4 flex items-start gap-3">
+                    <span className="text-xl flex-shrink-0">{tip.icon}</span>
+                    <div>
+                      <div className="font-medium text-white mb-1">{tip.title}</div>
+                      <p className="text-white/50">{tip.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        },
+        contact: {
+          title: 'Contact Us',
+          icon: '📧',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>We'd love to hear from you. Reach out through any of the channels below.</p>
+              <div className="grid gap-3">
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">📧 Email Support</div>
+                  <p className="text-white/50">support@kampuskart.ug</p>
+                  <p className="text-xs text-white/30 mt-1">Response within 24 hours</p>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">📱 WhatsApp</div>
+                  <p className="text-white/50">+256 700 123 456</p>
+                  <p className="text-xs text-white/30 mt-1">Mon-Fri, 8AM - 6PM</p>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">🐦 Twitter / X</div>
+                  <p className="text-white/50">@KampusKartUG</p>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">🏢 Main Office</div>
+                  <p className="text-white/50">Makerere University Innovation Center, Kampala, Uganda</p>
+                </div>
+              </div>
+            </div>
+          )
+        },
+        terms: {
+          title: 'Terms of Service',
+          icon: '📋',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>Last updated: January 2026</p>
+              <div className="liquid-glass rounded-xl p-4 space-y-3">
+                <p>By using KampusKart, you agree to these terms. KampusKart is a marketplace connecting buyers and sellers. We do not own or facilitate the transfer of listed items.</p>
+                <p><strong className="text-white">Account Terms:</strong> You must be a registered student or staff member of a Ugandan university. You are responsible for maintaining the confidentiality of your account.</p>
+                <p><strong className="text-white">Listing Rules:</strong> Sellers must provide accurate descriptions, prices, and images. Prohibited items include alcohol, tobacco, weapons, and counterfeit goods.</p>
+                <p><strong className="text-white">Fees:</strong> A 10% platform commission applies to all completed transactions. Listing is free. Shop subscriptions are non-refundable.</p>
+                <p><strong className="text-white">Dispute Resolution:</strong> All disputes are resolved through our internal process. You agree to abide by admin decisions.</p>
+              </div>
+            </div>
+          )
+        },
+        privacy: {
+          title: 'Privacy Policy',
+          icon: '🔐',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>Last updated: January 2026</p>
+              <div className="liquid-glass rounded-xl p-4 space-y-3">
+                <p><strong className="text-white">Information We Collect:</strong> Name, email, phone number, university, and payment information. We also collect listing data, messages, and transaction history.</p>
+                <p><strong className="text-white">How We Use Data:</strong> To facilitate transactions, verify identities, process disputes, improve our platform, and send relevant notifications.</p>
+                <p><strong className="text-white">Data Sharing:</strong> We do not sell your data. Information is shared only with transaction parties and payment processors as necessary.</p>
+                <p><strong className="text-white">Security:</strong> Your data is encrypted in transit and at rest. We implement industry-standard security measures to protect your information.</p>
+                <p><strong className="text-white">Your Rights:</strong> You may request data deletion, correction, or export by contacting privacy@kampuskart.ug.</p>
+              </div>
+            </div>
+          )
+        },
+        'seller-agreement': {
+          title: 'Seller Agreement',
+          icon: '🤝',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>By listing products on KampusKart, you agree to the following seller terms:</p>
+              <div className="liquid-glass rounded-xl p-4 space-y-3">
+                <p><strong className="text-white">Product Quality:</strong> All listed items must match their description. Sellers are responsible for item condition, authenticity, and delivery.</p>
+                <p><strong className="text-white">Delivery Commitment:</strong> Sellers must fulfill orders within the stated delivery timeframe. Failure to deliver may result in account suspension.</p>
+                <p><strong className="text-white">Commission:</strong> A 10% platform fee is deducted from each completed sale. The remaining amount is credited to your wallet.</p>
+                <p><strong className="text-white">Returns:</strong> Sellers must honor the return policy stated on their listings. Items not as described must be accepted for return regardless of policy.</p>
+                <p><strong className="text-white">Prohibited Conduct:</strong> Fake listings, price gouging, selling prohibited items, or manipulating reviews will result in immediate account termination.</p>
+              </div>
+            </div>
+          )
+        },
+        refund: {
+          title: 'Refund Policy',
+          icon: '💳',
+          content: (
+            <div className="space-y-4 text-sm text-white/70">
+              <p>Our refund policy is designed to protect both buyers and sellers on KampusKart.</p>
+              <div className="grid gap-3">
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">✅ Eligible for Refund</div>
+                  <ul className="list-disc list-inside text-white/50 space-y-1">
+                    <li>Item not delivered within agreed timeframe</li>
+                    <li>Item significantly different from description</li>
+                    <li>Damaged or defective item received</li>
+                    <li>Duplicate or incorrect order fulfilled</li>
+                  </ul>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">❌ Not Eligible for Refund</div>
+                  <ul className="list-disc list-inside text-white/50 space-y-1">
+                    <li>Change of mind after delivery confirmed</li>
+                    <li>Damage caused after delivery</li>
+                    <li>Items delivered as described but buyer unhappy</li>
+                    <li>Disputes opened after 7-day window</li>
+                  </ul>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <div className="font-medium text-white mb-1">⏱️ Process Timeline</div>
+                  <ul className="list-disc list-inside text-white/50 space-y-1">
+                    <li>Dispute opened: within 7 days of delivery</li>
+                    <li>Seller response: within 48 hours</li>
+                    <li>Admin review: 3-5 business days</li>
+                    <li>Refund processing: 1-3 business days after approval</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )
+        }
+      };
+      const current = topics[infoTopic] || topics.help;
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] text-white pt-20">
+          <div className="w-full px-4 md:px-8 py-8">
+            <div className="max-w-3xl mx-auto">
+              <button onClick={() => setCurrentPage('landing')} className="flex items-center gap-2 text-sm text-white/50 hover:text-white mb-6 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Home
+              </button>
+              <div className="flex items-center gap-3 mb-8">
+                <span className="text-3xl">{current.icon}</span>
+                <div>
+                  <h1 className="text-2xl font-bold">{current.title}</h1>
+                  <p className="text-sm text-white/40">KampusKart</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-8">
+                {Object.entries(topics).map(([key, t]) => (
+                  <button key={key} onClick={() => setInfoTopic(key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${infoTopic === key ? 'bg-amber-500 text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                    {t.icon} {t.title}
+                  </button>
+                ))}
+              </div>
+              <div className="animate-fade-in-up" key={infoTopic}>
+                {current.content}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const LoadingSkeletons = () => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-8">
+        {[1,2,3,4,5,6,7,8].map(i => (
+          <div key={i} className="animate-fade-in-up" style={{animationDelay: `${0.05*i}s`}}>
+            <div className="skeleton aspect-square w-full mb-3" />
+            <div className="skeleton h-4 w-3/4 mb-2" />
+            <div className="skeleton h-3 w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+
+    const MobileTabBar = () => {
+      const { currentPage, setCurrentPage, setShowAuth, user, setShowCart } = useApp();
+      const cartCount = (user?.cart || []).reduce((s, i) => s + (i.quantity || 1), 0);
+      const hiddenPages = ['landing', 'product', 'shop-profile', 'admin', 'info'];
+      if (hiddenPages.includes(currentPage)) return null;
+
+      const tabs = [
+        { icon: '🏠', label: 'Home', page: 'landing' },
+        { icon: '🔍', label: 'Browse', page: 'home' },
+        { icon: '🛍️', label: 'Cart', page: 'cart', action: 'cart' },
+        { icon: '🛒', label: 'Orders', page: 'orders' },
+        { icon: '👤', label: 'Profile', page: 'profile' },
+      ];
+
+      return (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/10">
+          <div className="flex items-center pb-1">
+            {tabs.map(tab => (
+              <button key={tab.page} onClick={() => {
+                if (tab.page === 'profile' && !user) { setShowAuth(true); return; }
+                if (tab.action === 'cart') { setShowCart(true); return; }
+                setCurrentPage(tab.page);
+              }}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors ${currentPage === tab.page ? 'text-amber-400' : 'text-white/30'}`}>
+                <span className="text-lg relative">
+                  {tab.icon}
+                  {tab.action === 'cart' && cartCount > 0 && (
+                    <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-brand rounded-full text-[8px] flex items-center justify-center font-bold">{cartCount}</span>
+                  )}
+                </span>
+                <span className="text-[10px] font-medium">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const AppShell = () => {
+      const { currentPage, showAuth, loading } = useApp();
+
+      const pages = {
+        landing: <LandingPage />,
+        home: <HomePage />,
+        product: <ProductDetail />,
+        shops: <ShopsPage />,
+        'shop-profile': <ShopProfile />,
+        sell: <SellPage />,
+        orders: <OrdersPage />,
+        wallet: <WalletPage />,
+        notifications: <NotificationsPage />,
+        profile: <ProfilePage />,
+        admin: <AdminPanel />,
+        info: <InfoPage />,
+      };
+
+      return (
+        <div className="min-h-screen bg-[#0c0c0c] pb-16 md:pb-0">
+          <Navbar />
+          {loading ? <LoadingSkeletons /> : (pages[currentPage] || <LandingPage />)}
+          {showAuth && <LoginModal />}
+          <MobileTabBar />
+        </div>
+      );
+    };
+
+    const App = () => (
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
+    );
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

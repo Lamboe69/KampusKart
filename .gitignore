@@ -1,0 +1,11 @@
+node_modules/
+server/node_modules/
+kampuskart.db
+kampuskart.db-wal
+kampuskart.db-shm
+*.log
+.env
+.DS_Store
+backend/target/
+*.jar
+*.jar.original
