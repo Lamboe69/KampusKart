@@ -48,11 +48,12 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Product not found' });
   }
   try { product.delivery_zones = JSON.parse(product.delivery_zones || '[]'); } catch (e) { product.delivery_zones = []; }
+  try { product.images = JSON.parse(product.images || '[]'); } catch (e) { product.images = []; }
   res.json(product);
 });
 
 router.post('/', authenticateToken, (req, res) => {
-  const { title, price, original_price, category, condition, description, delivery_zones, delivery_fee, return_policy, image } = req.body;
+  const { title, price, original_price, category, condition, description, delivery_zones, delivery_fee, return_policy, image, images } = req.body;
 
   if (!title || !price || !category) {
     return res.status(400).json({ error: 'Title, price, and category are required' });
@@ -61,16 +62,17 @@ router.post('/', authenticateToken, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
+  const imagesArr = images && Array.isArray(images) ? images : (image ? [image] : []);
   const result = db.prepare(`
-    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, condition, description, delivery_zones, delivery_fee, return_policy, image, verified, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, condition, description, delivery_zones, delivery_fee, return_policy, image, images, verified, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     title, parseInt(price), original_price ? parseInt(original_price) : null,
     category, req.user.id, user.name, user.type === 'shop' ? 'shop' : 'individual',
     user.campus, condition || 'Brand New', description || '',
     JSON.stringify(delivery_zones || ['makerere']),
     parseInt(delivery_fee || 0), return_policy || 'no-returns',
-    image || '', user.verified, 'active'
+    (imagesArr[0] || image) || '', JSON.stringify(imagesArr), user.verified, 'active'
   );
 
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
@@ -83,7 +85,18 @@ router.put('/:id', authenticateToken, (req, res) => {
     return res.status(404).json({ error: 'Product not found or not authorized' });
   }
 
-  const { title, price, original_price, category, condition, description, delivery_zones, delivery_fee, return_policy, image, badge } = req.body;
+  const { title, price, original_price, category, condition, description, delivery_zones, delivery_fee, return_policy, image, images, badge } = req.body;
+
+  let finalImages = undefined;
+  if (images && Array.isArray(images)) {
+    finalImages = JSON.stringify(images);
+  } else if (image) {
+    const existing = db.prepare('SELECT images FROM products WHERE id = ?').get(req.params.id);
+    const existingArr = existing?.images ? JSON.parse(existing.images) : [];
+    if (existingArr.length === 0 || !existingArr.includes(image)) {
+      finalImages = JSON.stringify([image, ...existingArr.filter(u => u !== image)]);
+    }
+  }
 
   db.prepare(`
     UPDATE products SET
@@ -92,13 +105,13 @@ router.put('/:id', authenticateToken, (req, res) => {
       condition = COALESCE(?, condition), description = COALESCE(?, description),
       delivery_zones = COALESCE(?, delivery_zones), delivery_fee = COALESCE(?, delivery_fee),
       return_policy = COALESCE(?, return_policy), image = COALESCE(?, image),
-      badge = COALESCE(?, badge)
+      images = COALESCE(?, images), badge = COALESCE(?, badge)
     WHERE id = ?
   `)  .run(
     title, price !== undefined ? parseInt(price) : null,
     original_price !== undefined ? parseInt(original_price) : null, category, condition, description,
     delivery_zones !== undefined ? JSON.stringify(delivery_zones) : null,
-    delivery_fee !== undefined ? parseInt(delivery_fee) : null, return_policy, image, badge,
+    delivery_fee !== undefined ? parseInt(delivery_fee) : null, return_policy, image, finalImages, badge,
     req.params.id
   );
 

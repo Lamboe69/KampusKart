@@ -311,12 +311,57 @@ function seed() {
   const badges = ['Hot Deal', 'Featured', 'Popular', 'Bestseller', 'New', null, null, null, null, null];
   const fees = [0, 2000, 4000, 5000, 8000, 10000, 12000, 15000];
 
+  const extraImgs = {
+    electronics: [
+      'https://images.unsplash.com/photo-1468436139062-f60a71c5c892?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=400&fit=crop',
+    ],
+    fashion: [
+      'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=400&fit=crop',
+    ],
+    books: [
+      'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=400&h=400&fit=crop',
+    ],
+    food: [
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop',
+    ],
+    beauty: [
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1592812660686-8e0c17d9e22c?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1599733589046-10c7f0f8e0e7?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop',
+    ],
+    services: [
+      'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=400&fit=crop',
+    ],
+    furniture: [
+      'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop',
+    ],
+  };
+
   const sellerIds = users.filter(u => u.type !== 'admin' && u.type !== 'buyer')
     .map(u => ({ id: u.id, name: u.name, type: u.type === 'shop' ? 'shop' : 'individual', campus: u.campus }));
 
   const insertProduct = db.prepare(`
-    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, rating, reviews_count, image, condition, delivery_zones, delivery_fee, verified, badge, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, rating, reviews_count, image, condition, delivery_zones, delivery_fee, verified, badge, status, images)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const usedProductIds = [];
@@ -378,11 +423,15 @@ function seed() {
         const deliveryFee = catKey === 'services' ? 0 : fees[Math.floor(Math.random() * fees.length)];
         const verified = Math.random() > 0.3 ? 1 : 0;
 
+        const catImgs = extraImgs[catKey] || [];
+        const productImgs = [tpl.img, ...catImgs.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 4))];
+
         const result = insertProduct.run(
           title, price, origPrice, catKey,
           seller.id, seller.name, seller.type, campus,
           rating, reviews, tpl.img, condition,
-          JSON.stringify(uniqueZones), deliveryFee, verified, badge, 'active'
+          JSON.stringify(uniqueZones), deliveryFee, verified, badge, 'active',
+          JSON.stringify(productImgs)
         );
         usedProductIds.push(result.lastInsertRowid);
         totalProducts++;

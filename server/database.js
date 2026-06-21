@@ -158,5 +158,6 @@ try { db.exec('ALTER TABLE users ADD COLUMN rating REAL DEFAULT 0'); } catch(e) 
 try { db.exec('ALTER TABLE users ADD COLUMN reviews_count INTEGER DEFAULT 0'); } catch(e) {}
 try { db.exec('ALTER TABLE messages ADD COLUMN image TEXT'); } catch(e) {}
 try { db.exec('ALTER TABLE reviews ADD COLUMN order_id TEXT'); } catch(e) {}
+try { db.exec("ALTER TABLE products ADD COLUMN images TEXT DEFAULT '[]'"); } catch(e) {}
 
 module.exports = db;
