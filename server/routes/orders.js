@@ -48,7 +48,17 @@ router.post('/', authenticateToken, (req, res) => {
   const fee = delivery_fee !== undefined ? delivery_fee : product.delivery_fee;
   const total = (product.price * qty) + fee;
 
+  // Check buyer's wallet balance
+  const buyer = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (buyer.wallet_balance < total) {
+    return res.status(400).json({ error: `Insufficient balance. Need UGX ${total.toLocaleString()}, you have UGX ${buyer.wallet_balance.toLocaleString()}. Please top up.` });
+  }
+
   const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+  // Hold in escrow: deduct from buyer, add to seller's pending
+  db.prepare('UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?').run(total, req.user.id);
+  db.prepare('UPDATE users SET wallet_pending = wallet_pending + ? WHERE id = ?').run(total, product.seller_id);
 
   db.prepare(`
     INSERT INTO orders (id, product_id, product_title, buyer_id, buyer_name, seller_id, seller_name, amount, delivery_fee, total, status, campus, delivery_to, quantity, payment_method)
@@ -60,6 +70,10 @@ router.post('/', authenticateToken, (req, res) => {
     product.price * qty, fee, total,
     'pending', product.campus, delivery_to, qty, payment_method || 'mobile_money'
   );
+
+  // Debit transaction for buyer
+  db.prepare(`INSERT INTO transactions (user_id, type, amount, description, order_id) VALUES (?, 'debit', ?, ?, ?)`)
+    .run(req.user.id, total, `Escrow hold for ${product.title} x${qty}`, orderId);
 
   // Add notification for seller
   db.prepare(`
@@ -104,29 +118,33 @@ router.put('/:id/status', authenticateToken, (req, res) => {
   db.prepare('UPDATE orders SET status = ?, updated_at = datetime("now") WHERE id = ?')
     .run(status, req.params.id);
 
-  // If order completed, release funds to seller
+  // If order completed, release funds from escrow to seller
   if (status === 'completed') {
-    const seller = db.prepare('SELECT * FROM users WHERE id = ?').get(order.seller_id);
     const platformFee = Math.floor(order.amount * 0.1);
-    const sellerPayout = order.amount - platformFee;
+    const sellerPayout = order.total - platformFee;
 
     db.prepare('UPDATE users SET wallet_balance = wallet_balance + ?, wallet_pending = wallet_pending - ?, wallet_total_earned = wallet_total_earned + ? WHERE id = ?')
-      .run(sellerPayout, order.amount, sellerPayout, order.seller_id);
+      .run(sellerPayout, order.total, sellerPayout, order.seller_id);
 
     db.prepare('INSERT INTO transactions (user_id, type, amount, description, order_id) VALUES (?, ?, ?, ?, ?)')
-      .run(order.seller_id, 'credit', sellerPayout, `Sale: ${order.product_title}`, order.id);
+      .run(order.seller_id, 'credit', sellerPayout, `Sale completed: ${order.product_title} (10% platform fee: UGX ${platformFee.toLocaleString()})`, order.id);
 
     db.prepare(`INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)`)
-      .run(order.seller_id, 'payment', `UGX ${sellerPayout.toLocaleString()} credited for ${order.product_title}`);
+      .run(order.seller_id, 'payment', `UGX ${sellerPayout.toLocaleString()} released from escrow for ${order.product_title}`);
   }
 
-  // If cancelled, refund buyer
+  // If cancelled, refund buyer from escrow
   if (status === 'cancelled') {
     db.prepare('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?')
       .run(order.total, order.buyer_id);
+    db.prepare('UPDATE users SET wallet_pending = wallet_pending - ? WHERE id = ?')
+      .run(order.total, order.seller_id);
 
     db.prepare('INSERT INTO transactions (user_id, type, amount, description, order_id) VALUES (?, ?, ?, ?, ?)')
-      .run(order.buyer_id, 'refund', order.total, `Refund: ${order.product_title}`, order.id);
+      .run(order.buyer_id, 'refund', order.total, `Refund: ${order.product_title} (cancelled)`, order.id);
+
+    db.prepare(`INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)`)
+      .run(order.buyer_id, 'payment', `UGX ${order.total.toLocaleString()} refunded for cancelled order: ${order.product_title}`);
   }
 
   const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);

@@ -99,4 +99,10 @@ router.put('/profile', authenticateToken, (req, res) => {
   res.json({ message: 'Profile updated', user });
 });
 
+router.get('/user/:id', authenticateToken, (req, res) => {
+  const user = db.prepare('SELECT id, name, email, phone, type, campus, image, rating, reviews_count, description, created_at FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({ user });
+});
+
 module.exports = router;
