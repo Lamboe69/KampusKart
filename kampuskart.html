@@ -383,7 +383,16 @@ const AppContext = createContext();
       const [showNotifications, setShowNotifications] = useState(false);
       const [chatPartner, setChatPartner] = useState(null);
       const [wishlistIds, setWishlistIds] = useState([]);
+      const [messageUnread, setMessageUnread] = useState(0);
       const [loading, setLoading] = useState(true);
+
+      const refreshMessageUnread = async () => {
+        try {
+          const d = await api.get('/messages/conversations');
+          const total = (d.conversations || []).reduce((s, c) => s + (c.unread || 0), 0);
+          setMessageUnread(total);
+        } catch {}
+      };
 
       useEffect(() => {
         const init = async () => {
@@ -416,6 +425,7 @@ const AppContext = createContext();
               setOrders(ordersData.orders || ordersData);
               setWallet(walletData.wallet || walletData);
               setNotifications(notifData.notifications || notifData);
+              refreshMessageUnread();
             } catch (e) {
               localStorage.removeItem(TOKEN_KEY);
             }
@@ -446,6 +456,7 @@ const AppContext = createContext();
           setOrders(ordersData.orders || ordersData);
           setWallet(walletData.wallet || walletData);
           setNotifications(notifData.notifications || notifData);
+          refreshMessageUnread();
         } catch (e) { console.error(e); }
         return data;
       };
@@ -580,7 +591,7 @@ const AppContext = createContext();
           showMobileMenu, setShowMobileMenu, showCart, setShowCart, showNotifications, setShowNotifications, chatPartner, setChatPartner, wishlistIds, setWishlistIds, addToCart, removeFromCart, updateCartQuantity, clearCart,
           showAuth, setShowAuth, login, register, logout, refreshProducts,
           refreshOrders, refreshWallet, setOrders, infoTopic, setInfoTopic, toggleWishlist,
-          theme, toggleTheme
+          theme, toggleTheme, messageUnread, refreshMessageUnread
         }}>
           {children}
         </AppContext.Provider>
@@ -735,7 +746,7 @@ const AppContext = createContext();
     );
 
     const Navbar = () => {
-      const { user, setCurrentPage, currentPage, notifications, markNotificationRead, markAllNotificationsRead, searchQuery, setSearchQuery, setShowAuth, logout, removeFromCart, updateCartQuantity, clearCart, refreshOrders, refreshWallet, showCart, setShowCart, showNotifications, setShowNotifications, wallet, theme, toggleTheme } = useApp();
+      const { user, setCurrentPage, currentPage, notifications, markNotificationRead, markAllNotificationsRead, searchQuery, setSearchQuery, setShowAuth, logout, removeFromCart, updateCartQuantity, clearCart, refreshOrders, refreshWallet, showCart, setShowCart, showNotifications, setShowNotifications, wallet, theme, toggleTheme, messageUnread, refreshMessageUnread } = useApp();
       const unreadCount = (notifications || []).filter(n => !n.read).length;
       const cartCount = (user?.cart || []).reduce((s, i) => s + (i.quantity || 1), 0);
       const [suggestions, setSuggestions] = useState([]);
@@ -796,8 +807,11 @@ const AppContext = createContext();
             <div className="hidden md:flex items-center gap-6">
               {navLinks.map(link => (
                   <button key={link.page} onClick={() => setCurrentPage(link.page)}
-                    className={`text-sm font-medium transition-colors ${currentPage === link.page ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                    className={`relative text-sm font-medium transition-colors ${currentPage === link.page ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
                   {link.label}
+                  {link.page === 'chat' && messageUnread > 0 && (
+                    <span className="absolute -top-2 -right-4 px-1.5 py-0.5 rounded-full bg-brand text-white text-[9px] font-bold leading-none">{messageUnread}</span>
+                  )}
                 </button>
               ))}
               <button onClick={() => setShowNotifications(!showNotifications)} className="relative text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
@@ -2925,7 +2939,7 @@ const AppContext = createContext();
     };
 
     const ChatPage = () => {
-      const { user, chatPartner, setChatPartner, setCurrentPage, setShowAuth } = useApp();
+      const { user, chatPartner, setChatPartner, setCurrentPage, setShowAuth, refreshMessageUnread } = useApp();
       const [messages, setMessages] = useState([]);
       const [input, setInput] = useState('');
       const [ws, setWs] = useState(null);
@@ -2940,7 +2954,7 @@ const AppContext = createContext();
 
       useEffect(() => {
         if (!user) return;
-        api.get('/messages/conversations').then(d => setConversations(d.conversations || [])).catch(() => {});
+        api.get('/messages/conversations').then(d => { setConversations(d.conversations || []); refreshMessageUnread(); }).catch(() => {});
       }, [user]);
 
       useEffect(() => {
@@ -2960,6 +2974,7 @@ const AppContext = createContext();
             const data = JSON.parse(e.data);
             if (data.type === 'new_message' || data.type === 'sent') {
               setMessages(prev => [...prev, data.message]);
+              refreshMessageUnread();
             }
             if (data.type === 'typing' && data.user_id === chatPartner.id) {
               setIsTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => setIsTyping(false), 2000);
