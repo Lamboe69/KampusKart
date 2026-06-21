@@ -105,4 +105,34 @@ router.get('/user/:id', authenticateToken, (req, res) => {
   res.json({ user });
 });
 
+router.put('/change-password', authenticateToken, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Current and new password are required' });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  const password_hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(password_hash, req.user.id);
+  res.json({ message: 'Password changed successfully' });
+});
+
+router.delete('/account', authenticateToken, (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!bcrypt.compareSync(password, user.password_hash)) {
+    return res.status(401).json({ error: 'Password is incorrect' });
+  }
+  db.prepare('DELETE FROM users WHERE id = ?').run(req.user.id);
+  res.json({ message: 'Account deleted' });
+});
+
 module.exports = router;

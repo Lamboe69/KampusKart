@@ -284,7 +284,7 @@ const api = {
   get(path) { return this.request(path); },
   post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); },
   put(path, body) { return this.request(path, { method: 'PUT', body: JSON.stringify(body) }); },
-  del(path) { return this.request(path, { method: 'DELETE' }); },
+  del(path, body) { return this.request(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }); },
   async upload(path, formData) {
     const token = localStorage.getItem(TOKEN_KEY);
     const headers = {};
@@ -3371,6 +3371,46 @@ const AppContext = createContext();
       const [editDesc, setEditDesc] = useState('');
       const [saving, setSaving] = useState(false);
       const [message, setMessage] = useState('');
+      const [passwordCurrent, setPasswordCurrent] = useState('');
+      const [passwordNew, setPasswordNew] = useState('');
+      const [passwordConfirm, setPasswordConfirm] = useState('');
+      const [passwordMsg, setPasswordMsg] = useState('');
+      const [passwordSaving, setPasswordSaving] = useState(false);
+      const [deletePassword, setDeletePassword] = useState('');
+      const [deleteMsg, setDeleteMsg] = useState('');
+      const [deleteSaving, setDeleteSaving] = useState(false);
+      const [language, setLanguage] = useState(localStorage.getItem('kampuskart_lang') || 'en');
+
+      const changePassword = async () => {
+        if (!passwordCurrent || !passwordNew || !passwordConfirm) { setPasswordMsg('Fill in all fields'); return; }
+        if (passwordNew !== passwordConfirm) { setPasswordMsg('Passwords do not match'); return; }
+        if (passwordNew.length < 6) { setPasswordMsg('New password must be at least 6 characters'); return; }
+        setPasswordSaving(true);
+        setPasswordMsg('');
+        try {
+          await api.put('/auth/change-password', { current_password: passwordCurrent, new_password: passwordNew });
+          setPasswordMsg('Password changed successfully!');
+          setPasswordCurrent(''); setPasswordNew(''); setPasswordConfirm('');
+          setTimeout(() => setActiveSection(null), 1500);
+        } catch (e) { setPasswordMsg(e.message || 'Failed to change password'); }
+        setPasswordSaving(false);
+      };
+
+      const deleteAccount = async () => {
+        if (!deletePassword) { setDeleteMsg('Enter your password to confirm'); return; }
+        setDeleteSaving(true);
+        setDeleteMsg('');
+        try {
+          await api.del('/auth/account', { password: deletePassword });
+          setDeleteMsg('Account deleted. Redirecting...');
+          localStorage.removeItem('kampuskart_token');
+          logout();
+          setCurrentPage('landing');
+        } catch (e) { setDeleteMsg(e.message || 'Failed to delete account'); }
+        setDeleteSaving(false);
+      };
+
+      useEffect(() => { localStorage.setItem('kampuskart_lang', language); }, [language]);
 
       if (!user) {
         return (
@@ -3610,6 +3650,121 @@ const AppContext = createContext();
                   </div>
                 </div>
               </>
+            ) : activeSection === 'change-password' ? (
+              <>
+                {renderBack('Change Password')}
+                <div className="liquid-glass rounded-2xl p-6 md:p-8 max-w-xl">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Current Password</label>
+                      <input type="password" value={passwordCurrent} onChange={e => setPasswordCurrent(e.target.value)}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">New Password</label>
+                      <input type="password" value={passwordNew} onChange={e => setPasswordNew(e.target.value)}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Confirm New Password</label>
+                      <input type="password" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]" />
+                    </div>
+                    {passwordMsg && (
+                      <div className={`text-xs font-medium ${passwordMsg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{passwordMsg}</div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <Button onClick={changePassword} disabled={passwordSaving}>{passwordSaving ? 'Changing...' : 'Change Password'}</Button>
+                      <button onClick={sectionBack} className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : activeSection === 'language' ? (
+              <>
+                {renderBack('Language')}
+                <div className="liquid-glass rounded-2xl p-6 md:p-8 max-w-xl">
+                  <p className="text-sm text-[var(--text-secondary)] mb-4">Select your preferred language.</p>
+                  <div className="space-y-2">
+                    {[
+                      { code: 'en', label: 'English', native: 'English' },
+                      { code: 'lug', label: 'Luganda', native: 'Luganda' },
+                      { code: 'sw', label: 'Swahili', native: 'Kiswahili' },
+                      { code: 'ach', label: 'Acholi', native: 'Acholi' },
+                      { code: 'run', label: 'Runyankore', native: 'Runyankore' },
+                    ].map(lang => (
+                      <div key={lang.code} className={`rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${language === lang.code ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/20' : 'bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]'}`}
+                        onClick={() => setLanguage(lang.code)}>
+                        <span className="text-xl">{lang.code === 'en' ? '🇬🇧' : lang.code === 'lug' ? '🇺🇬' : lang.code === 'sw' ? '🇹🇿' : '🌍'}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{lang.label}</div>
+                          <div className="text-xs text-[var(--text-tertiary)]">{lang.native}</div>
+                        </div>
+                        {language === lang.code && <span className="text-brand text-sm">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-[var(--text-quaternary)] mt-4">Note: Language preferences are currently a display setting. Most content is in English.</p>
+                </div>
+              </>
+            ) : activeSection === 'about' ? (
+              <>
+                {renderBack('About')}
+                <div className="liquid-glass rounded-2xl p-6 md:p-8 space-y-5 max-w-xl">
+                  <div className="text-center mb-2">
+                    <div className="text-5xl mb-3">🛍️</div>
+                    <h3 className="text-xl font-bold">KampusKart</h3>
+                    <p className="text-sm text-[var(--text-secondary)]">Uganda Campus Marketplace</p>
+                    <div className="inline-block mt-2 px-3 py-1 rounded-full bg-[var(--bg-card)] text-xs text-[var(--text-tertiary)]">Version 1.0.0</div>
+                  </div>
+                  <div className="bg-[var(--bg-card)] rounded-xl p-4 text-sm text-[var(--text-secondary)] space-y-3">
+                    <p>KampusKart connects students across Ugandan campuses to buy, sell, and trade goods within their community.</p>
+                    <p>Built with React, Node.js, Express, and SQLite. Features real-time messaging, escrow payments, and campus-based delivery.</p>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '📜', label: 'Terms of Service', desc: 'User agreement and rules' },
+                      { icon: '🔒', label: 'Privacy Policy', desc: 'How we handle your data' },
+                      { icon: '📝', label: 'Cookie Policy', desc: 'Cookie usage information' },
+                    ].map((item, i) => (
+                      <div key={i} className="bg-[var(--bg-card)] rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:bg-[var(--bg-hover)] transition-colors">
+                        <span className="text-xl">{item.icon}</span>
+                        <div>
+                          <div className="text-sm font-medium">{item.label}</div>
+                          <div className="text-xs text-[var(--text-tertiary)]">{item.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : activeSection === 'delete-account' ? (
+              <>
+                {renderBack('Delete Account')}
+                <div className="liquid-glass rounded-2xl p-6 md:p-8 max-w-xl">
+                  <div className="flex items-center gap-3 mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <span className="text-2xl">⚠️</span>
+                    <p className="text-sm text-red-400">This action is permanent and cannot be undone. All your data will be removed.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Enter your password to confirm</label>
+                      <input type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-red-400" />
+                    </div>
+                    {deleteMsg && (
+                      <div className={`text-xs font-medium ${deleteMsg.includes('success') ? 'text-green-400' : 'text-red-400'}`}>{deleteMsg}</div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={deleteAccount} disabled={deleteSaving || !deletePassword}
+                        className="px-5 py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-40">
+                        {deleteSaving ? 'Deleting...' : 'Delete My Account'}
+                      </button>
+                      <button onClick={sectionBack} className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : (
               <>
               <SectionEyebrow label="Profile" />
@@ -3660,10 +3815,16 @@ const AppContext = createContext();
                 {[
                   { label: 'Edit Profile', icon: '✏️', section: 'edit-profile' },
                   { label: 'Verification', icon: '✅', section: 'verification' },
+                  { label: 'Wishlist', icon: '❤️', action: () => setCurrentPage('home') },
+                  { label: 'Order History', icon: '📦', action: () => setCurrentPage('orders') },
                   { label: 'Delivery Addresses', icon: '📍', section: 'delivery-addresses' },
                   { label: 'Payment Methods', icon: '💳', section: 'payment-methods' },
+                  { label: 'Change Password', icon: '🔑', section: 'change-password' },
                   { label: 'Settings', icon: '⚙️', section: 'settings' },
+                  { label: 'Language', icon: '🌐', section: 'language' },
                   { label: 'Help & Support', icon: '❓', section: 'help-support' },
+                  { label: 'About', icon: 'ℹ️', section: 'about' },
+                  { label: 'Delete Account', icon: '🗑️', section: 'delete-account', danger: true },
                   { label: 'Log Out', icon: '🚪', danger: true, action: () => { logout(); setCurrentPage('landing'); } },
                 ].map((item, i) => (
                   <div key={i} className="liquid-glass rounded-xl p-5 flex items-center gap-4 cursor-pointer hover:bg-[var(--bg-card)] transition-colors"
