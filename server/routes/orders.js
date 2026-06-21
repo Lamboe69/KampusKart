@@ -76,10 +76,10 @@ router.post('/', authenticateToken, (req, res) => {
     .run(req.user.id, total, `Escrow hold for ${product.title} x${qty}`, orderId);
 
   // Add notification for seller
-  db.prepare(`
-    INSERT INTO notifications (user_id, type, message)
-    VALUES (?, ?, ?)
-  `).run(product.seller_id, 'order', `New order: ${product.title} by ${req.user.name}`);
+  const notifMsg = `New order: ${product.title} by ${req.user.name}`;
+  db.prepare(`INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)`)
+    .run(product.seller_id, 'order', notifMsg);
+  if (typeof global.pushNotification === 'function') global.pushNotification(product.seller_id, { type: 'order', message: notifMsg });
 
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   res.status(201).json(order);
@@ -129,8 +129,10 @@ router.put('/:id/status', authenticateToken, (req, res) => {
     db.prepare('INSERT INTO transactions (user_id, type, amount, description, order_id) VALUES (?, ?, ?, ?, ?)')
       .run(order.seller_id, 'credit', sellerPayout, `Sale completed: ${order.product_title} (10% platform fee: UGX ${platformFee.toLocaleString()})`, order.id);
 
+    const payoutMsg = `UGX ${sellerPayout.toLocaleString()} released from escrow for ${order.product_title}`;
     db.prepare(`INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)`)
-      .run(order.seller_id, 'payment', `UGX ${sellerPayout.toLocaleString()} released from escrow for ${order.product_title}`);
+      .run(order.seller_id, 'payment', payoutMsg);
+    if (typeof global.pushNotification === 'function') global.pushNotification(order.seller_id, { type: 'payment', message: payoutMsg });
   }
 
   // If cancelled, refund buyer from escrow
@@ -143,8 +145,10 @@ router.put('/:id/status', authenticateToken, (req, res) => {
     db.prepare('INSERT INTO transactions (user_id, type, amount, description, order_id) VALUES (?, ?, ?, ?, ?)')
       .run(order.buyer_id, 'refund', order.total, `Refund: ${order.product_title} (cancelled)`, order.id);
 
+    const refundMsg = `UGX ${order.total.toLocaleString()} refunded for cancelled order: ${order.product_title}`;
     db.prepare(`INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)`)
-      .run(order.buyer_id, 'payment', `UGX ${order.total.toLocaleString()} refunded for cancelled order: ${order.product_title}`);
+      .run(order.buyer_id, 'payment', refundMsg);
+    if (typeof global.pushNotification === 'function') global.pushNotification(order.buyer_id, { type: 'payment', message: refundMsg });
   }
 
   const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);

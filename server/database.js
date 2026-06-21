@@ -133,11 +133,22 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,
     user_id TEXT NOT NULL,
+    order_id TEXT,
     rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS wishlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    product_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    UNIQUE(user_id, product_id)
   );
 `);
 
@@ -145,5 +156,7 @@ db.exec(`
 try { db.exec('ALTER TABLE users ADD COLUMN image TEXT'); } catch(e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN rating REAL DEFAULT 0'); } catch(e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN reviews_count INTEGER DEFAULT 0'); } catch(e) {}
+try { db.exec('ALTER TABLE messages ADD COLUMN image TEXT'); } catch(e) {}
+try { db.exec('ALTER TABLE reviews ADD COLUMN order_id TEXT'); } catch(e) {}
 
 module.exports = db;

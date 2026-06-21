@@ -372,6 +372,7 @@ const AppContext = createContext();
       const [showCart, setShowCart] = useState(false);
       const [showNotifications, setShowNotifications] = useState(false);
       const [chatPartner, setChatPartner] = useState(null);
+      const [wishlistIds, setWishlistIds] = useState([]);
       const [loading, setLoading] = useState(true);
 
       useEffect(() => {
@@ -401,6 +402,7 @@ const AppContext = createContext();
                 api.get('/notifications'),
               ]);
               setUser(userData.user || userData);
+              try { const wd = await api.get('/wishlist/ids'); setWishlistIds(wd.ids || []); } catch {}
               setOrders(ordersData.orders || ordersData);
               setWallet(walletData.wallet || walletData);
               setNotifications(notifData.notifications || notifData);
@@ -530,6 +532,17 @@ const AppContext = createContext();
           setWallet(data.wallet || data);
         } catch (e) { console.error(e); }
       };
+      const toggleWishlist = async (productId) => {
+        try {
+          if (wishlistIds.includes(productId)) {
+            await api.del(`/wishlist/${productId}`);
+            setWishlistIds(prev => prev.filter(id => id !== productId));
+          } else {
+            await api.post(`/wishlist/${productId}`);
+            setWishlistIds(prev => [...prev, productId]);
+          }
+        } catch (e) { console.error(e); }
+      };
       const refreshProducts = async (params = {}) => {
         try {
           const query = new URLSearchParams();
@@ -554,9 +567,9 @@ const AppContext = createContext();
           markNotificationRead, markAllNotificationsRead,
           searchQuery, setSearchQuery,
           selectedCategory, setSelectedCategory, selectedCampus, setSelectedCampus,
-          showMobileMenu, setShowMobileMenu, showCart, setShowCart, showNotifications, setShowNotifications, chatPartner, setChatPartner, addToCart, removeFromCart, updateCartQuantity, clearCart,
+          showMobileMenu, setShowMobileMenu, showCart, setShowCart, showNotifications, setShowNotifications, chatPartner, setChatPartner, wishlistIds, setWishlistIds, addToCart, removeFromCart, updateCartQuantity, clearCart,
           showAuth, setShowAuth, login, register, logout, refreshProducts,
-          refreshOrders, refreshWallet, setOrders, infoTopic, setInfoTopic,
+          refreshOrders, refreshWallet, setOrders, infoTopic, setInfoTopic, toggleWishlist,
           theme, toggleTheme
         }}>
           {children}
@@ -715,6 +728,22 @@ const AppContext = createContext();
       const { user, setCurrentPage, currentPage, notifications, markNotificationRead, markAllNotificationsRead, searchQuery, setSearchQuery, setShowAuth, logout, removeFromCart, updateCartQuantity, clearCart, refreshOrders, refreshWallet, showCart, setShowCart, showNotifications, setShowNotifications, wallet, theme, toggleTheme } = useApp();
       const unreadCount = (notifications || []).filter(n => !n.read).length;
       const cartCount = (user?.cart || []).reduce((s, i) => s + (i.quantity || 1), 0);
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      let debounceTimer;
+      const handleSearchInput = (e) => {
+        const val = e.target.value;
+        setSearchQuery(val);
+        clearTimeout(debounceTimer);
+        if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+        debounceTimer = setTimeout(async () => {
+          try {
+            const d = await api.get(`/search/suggestions?q=${encodeURIComponent(val)}`);
+            const all = [...(d.suggestions||[]), ...(d.categories||[]).map(c => `[${c}]`)];
+            setSuggestions(all); setShowSuggestions(all.length > 0);
+          } catch { setSuggestions([]); }
+        }, 300);
+      };
       const navLinks = [
         { label: 'Browse', page: 'home' },
         { label: 'Shops', page: 'shops' },
@@ -732,13 +761,27 @@ const AppContext = createContext();
               <LogoMark className="w-7 h-7" />
               <span className="font-bold text-lg tracking-tight text-[var(--text-primary)]">KampusKart</span>
             </div>
-            <div className="hidden md:flex items-center gap-1 bg-[var(--bg-card)] rounded-full px-4 py-2 border border-[var(--border-color)] flex-1 max-w-md mx-8 focus-within:border-[var(--accent-border)] focus-within:shadow-sm focus-within:shadow-[var(--accent-shadow)] transition-all">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-tertiary)]">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-              </svg>
-              <input type="text" placeholder="Search products, shops, campuses..."
-                className="bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-quaternary)] w-full ml-2"
-                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setCurrentPage('home')} />
+            <div className="hidden md:flex flex-col relative flex-1 max-w-md mx-8">
+              <div className="flex items-center gap-1 bg-[var(--bg-card)] rounded-full px-4 py-2 border border-[var(--border-color)] focus-within:border-[var(--accent-border)] focus-within:shadow-sm focus-within:shadow-[var(--accent-shadow)] transition-all">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-tertiary)]">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" placeholder="Search products, shops, campuses..."
+                  className="bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-quaternary)] w-full ml-2"
+                  value={searchQuery} onChange={handleSearchInput} onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); setCurrentPage('home'); } }} />
+              </div>
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 mt-2 liquid-glass rounded-2xl p-2 z-50 animate-fade-in">
+                  {suggestions.map((s, i) => (
+                    <button key={i} onMouseDown={() => { setSearchQuery(s.replace(/^\[|\]$/g, '')); setShowSuggestions(false); setCurrentPage('home'); }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-all">
+                      {s.startsWith('[') ? '📁 ' : '🔍 '}{s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="hidden md:flex items-center gap-6">
               {navLinks.map(link => (
@@ -1412,7 +1455,7 @@ const AppContext = createContext();
     };
 
     const HomePage = () => {
-      const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, selectedCampus, setSelectedCampus, setCurrentPage, setSelectedProduct, addToCart, products, refreshProducts } = useApp();
+      const { searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, selectedCampus, setSelectedCampus, setCurrentPage, setSelectedProduct, addToCart, products, refreshProducts, user, setShowAuth, wishlistIds, toggleWishlist } = useApp();
       const [priceRange, setPriceRange] = useState([0, 5000000]);
       const [showFilters, setShowFilters] = useState(false);
       const [sortBy, setSortBy] = useState('featured');
@@ -1511,11 +1554,17 @@ const AppContext = createContext();
                         </div>
                       )}
                       {product.originalPrice && product.price < product.originalPrice && (
-                        <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-gradient-to-r from-red-500 to-[var(--accent)] text-[var(--text-primary)] text-[10px] font-bold shadow-lg shadow-red-500/30">
+                        <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-gradient-to-r from-red-500 to-[var(--accent)] text-[var(--text-primary)] text-[10px] font-bold shadow-lg shadow-red-500/30">
                           -{Math.round((1 - product.price / product.originalPrice) * 100)}%
                         </div>
                       )}
-                      <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--bg-overlay)] text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                      <button onClick={(e) => { e.stopPropagation(); if (!user) { setShowAuth(true); return; } toggleWishlist(product.id); }}
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-all z-10">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={wishlistIds.includes(product.id) ? '#ef4444' : 'none'} stroke={wishlistIds.includes(product.id) ? '#ef4444' : 'white'} strokeWidth="2">
+                          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                        </svg>
+                      </button>
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[var(--bg-overlay)] text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-hover)] animate-pulse" />
                         {((product.id * 17 + 31) % 25) + 3} watching
                       </div>
@@ -1794,6 +1843,10 @@ const AppContext = createContext();
                   }
                   setCurrentPage('chat');
                 }}>Message Seller</Button>
+                <button onClick={() => { if (navigator.share) { navigator.share({ title: product.title, text: `Check out ${product.title} on KampusKart!`, url: window.location.href }); } else { navigator.clipboard?.writeText(window.location.href); alert('Link copied!'); } }}
+                  className="w-9 h-9 rounded-full bg-[var(--bg-card)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                </button>
               </div>
             </div>
 
@@ -2329,6 +2382,9 @@ const AppContext = createContext();
 
     const OrdersPage = () => {
       const { setCurrentPage, orders, user, refreshOrders, wallet, setWallet, setChatPartner } = useApp();
+      const [reviewRating, setReviewRating] = useState(0);
+      const [reviewComment, setReviewComment] = useState('');
+      const [reviewedOrders, setReviewedOrders] = useState([]);
       const [filter, setFilter] = useState('all');
       const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -2509,6 +2565,33 @@ const AppContext = createContext();
                           onClick={async () => {
                             try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
                           }}>Report Issue</Button>
+                      </div>
+                    )}
+
+                    {(selectedOrder.status === 'completed' || selectedOrder.status === 'delivered') && selectedOrder.buyer_id === user.id && !reviewedOrders.includes(selectedOrder.id) && (
+                      <div className="liquid-glass rounded-xl p-5 mt-4">
+                        <h4 className="text-sm font-semibold mb-3">⭐ Rate this product</h4>
+                        <div className="flex items-center gap-1 mb-3">
+                          {[1,2,3,4,5].map(s => (
+                            <button key={s} onClick={() => setReviewRating(s)}
+                              className={`text-2xl transition-all ${s <= reviewRating ? 'text-yellow-400 scale-110' : 'text-[var(--text-quaternary)]'}`}>
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                          placeholder="Share your experience with this product..."
+                          className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-border)] placeholder-[var(--text-quaternary)] resize-none h-20 mb-3" />
+                        <Button className="text-xs px-4 py-2" onClick={async () => {
+                          if (!reviewRating) { alert('Select a rating'); return; }
+                          try {
+                            await api.post('/reviews', { product_id: selectedOrder.product_id, order_id: selectedOrder.id, rating: reviewRating, comment: reviewComment });
+                            setReviewedOrders(prev => [...prev, selectedOrder.id]);
+                            setReviewRating(0);
+                            setReviewComment('');
+                            alert('Review submitted!');
+                          } catch (e) { alert(e.message); }
+                        }}>Submit Review</Button>
                       </div>
                     )}
                   </div>
@@ -2766,6 +2849,10 @@ const AppContext = createContext();
       const messagesEndRef = useRef(null);
       const [partnerInfo, setPartnerInfo] = useState(null);
       const [conversations, setConversations] = useState([]);
+      const [isTyping, setIsTyping] = useState(false);
+      const [selectedFile, setSelectedFile] = useState(null);
+      const [uploading, setUploading] = useState(false);
+      let typingTimer;
 
       useEffect(() => {
         if (!user) return;
@@ -2791,6 +2878,16 @@ const AppContext = createContext();
             if (data.type === 'new_message' || data.type === 'sent') {
               setMessages(prev => [...prev, data.message]);
             }
+            if (data.type === 'typing' && data.user_id === chatPartner.id) {
+              setIsTyping(true); clearTimeout(typingTimer); typingTimer = setTimeout(() => setIsTyping(false), 2000);
+            }
+            if (data.type === 'read_receipt' && data.user_id === chatPartner.id) {
+              setMessages(prev => prev.map(m => m.sender_id === user.id ? { ...m, read: 1 } : m));
+            }
+            if (data.type === 'notification') {
+              const n = data.notification;
+              alert(`🔔 ${n.type}: ${n.message}`);
+            }
           } catch {}
         };
         socket.onclose = () => { setWs(null); };
@@ -2803,6 +2900,31 @@ const AppContext = createContext();
         if (!input.trim() || !ws) return;
         ws.send(JSON.stringify({ receiver_id: chatPartner.id, message: input.trim() }));
         setInput('');
+      };
+      const sendImage = async (file) => {
+        if (!file || !ws) return;
+        setUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const token = localStorage.getItem(TOKEN_KEY);
+          const res = await fetch(`${API}/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+          const data = await res.json();
+          ws.send(JSON.stringify({ receiver_id: chatPartner.id, message: '📷 Image', image: data.url }));
+        } catch (e) { alert('Upload failed'); }
+        setUploading(false);
+        setSelectedFile(null);
+      };
+      const handleInputChange = (e) => {
+        setInput(e.target.value);
+        if (ws && e.target.value) {
+          ws.send(JSON.stringify({ type: 'typing', receiver_id: chatPartner.id }));
+        }
+      };
+      const markRead = () => {
+        if (ws && chatPartner) {
+          ws.send(JSON.stringify({ type: 'read', receiver_id: chatPartner.id, sender_id: chatPartner.id }));
+        }
       };
 
       const phone = partnerInfo?.phone || chatPartner?.phone || '+256700000000';
@@ -2920,7 +3042,7 @@ const AppContext = createContext();
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3" onClick={() => markRead()}>
                 {messages.map((m, i) => (
                   <div key={m.id} className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -2928,24 +3050,53 @@ const AppContext = createContext();
                         ? 'bg-[var(--accent)] text-white rounded-br-md'
                         : 'bg-[var(--bg-card)] text-[var(--text-primary)] rounded-bl-md'
                     }`}>
-                      {m.message}
-                      <div className={`text-[10px] mt-1 ${m.sender_id === user.id ? 'text-white/60' : 'text-[var(--text-tertiary)]'}`}>
-                        {m.created_at?.split(' ')[1]?.slice(0, 5) || ''}
+                      {m.image ? (
+                        <img src={m.image} alt="Shared" className="max-w-full rounded-lg mb-1" onError={onImgError} />
+                      ) : null}
+                      {m.message && <div>{m.message}</div>}
+                      <div className={`flex items-center gap-1 ${m.sender_id === user.id ? 'justify-end' : 'justify-start'} text-[10px] mt-1 ${m.sender_id === user.id ? 'text-white/60' : 'text-[var(--text-tertiary)]'}`}>
+                        <span>{m.created_at?.split(' ')[1]?.slice(0, 5) || ''}</span>
+                        {m.sender_id === user.id && <span>{m.read ? '✓✓' : '✓'}</span>}
                       </div>
                     </div>
                   </div>
                 ))}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-[var(--bg-card)] px-4 py-2.5 rounded-2xl rounded-bl-md text-sm text-[var(--text-tertiary)] animate-fade-in">
+                      <span className="inline-flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-quaternary)] animate-bounce" style={{animationDelay:'0ms'}} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-quaternary)] animate-bounce" style={{animationDelay:'150ms'}} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-quaternary)] animate-bounce" style={{animationDelay:'300ms'}} />
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
               <div className="border-t border-[var(--border-color)] p-4">
+                {selectedFile && (
+                  <div className="flex items-center gap-2 mb-3 px-2">
+                    <span className="text-xs text-[var(--text-secondary)] truncate flex-1">{selectedFile.name}</span>
+                    <button onClick={() => sendImage(selectedFile)} disabled={uploading}
+                      className="text-xs px-3 py-1 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-40 transition-all">
+                      {uploading ? 'Uploading...' : 'Send'}
+                    </button>
+                    <button onClick={() => setSelectedFile(null)} className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">Cancel</button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <input type="text" value={input} onChange={e => setInput(e.target.value)}
+                  <label className="w-9 h-9 rounded-full bg-[var(--bg-card)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] cursor-pointer transition-all shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (f.size > 5*1024*1024) { alert('File too large (max 5MB)'); return; } setSelectedFile(f); } }} />
+                  </label>
+                  <input type="text" value={input} onChange={handleInputChange}
                     onKeyDown={e => e.key === 'Enter' && send()}
                     placeholder="Type a message..."
                     className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-border)] placeholder-[var(--text-quaternary)]" />
                   <button onClick={send} disabled={!input.trim() || !ws}
-                    className="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-40">
+                    className="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-40 shrink-0">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
                   </button>
                 </div>
