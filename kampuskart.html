@@ -3081,8 +3081,8 @@ const AppContext = createContext();
       const filtered = conversations.filter(c => (c.other_name || '').toLowerCase().includes(searchConv.toLowerCase()));
 
       return (
-        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pt-20">
-          <div className="w-full max-w-6xl mx-auto px-3 md:px-6 py-4 flex gap-0 lg:gap-4" style={{ height: 'calc(100vh - 130px)' }}>
+        <div className="h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col">
+          <div className="flex-1 flex gap-0 lg:gap-1 overflow-hidden px-2 lg:px-4" style={{ paddingTop: '64px' }}>
 
             {/* ── LEFT: Conversation List ── */}
             <div className={`${chatPartner ? 'hidden' : 'flex'} lg:flex flex-col w-full lg:w-80 xl:w-96 shrink-0 lg:border-r lg:border-[var(--border-color)] lg:pr-4 overflow-hidden`}>
