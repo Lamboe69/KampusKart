@@ -334,6 +334,7 @@ const normalizeProduct = (p) => ({
   seller: p.sellerName || p.seller_name || p.seller || 'Unknown',
   sellerType: p.sellerType || p.seller_type || 'individual',
   deliveryFee: p.deliveryFee || p.delivery_fee || 0,
+  deliveryFees: p.deliveryFees || p.delivery_fees || {},
   originalPrice: p.originalPrice || p.original_price || null,
   reviews: p.reviewsCount || p.reviews_count || p.reviews || 0,
   image: p.image || IMG_FALLBACK,
@@ -1657,7 +1658,9 @@ const AppContext = createContext();
       const campusName = CAMPUSES.find(c => c.id === deliveryCampus)?.name || deliveryCampus;
       const productDelivery = typeof product.delivery_zones === 'string' ? JSON.parse(product.delivery_zones) : (product.delivery || product.delivery_zones || []);
       const canDeliver = productDelivery.includes(deliveryCampus);
-      const finalDeliveryFee = negotiateFee ? customFee : product.deliveryFee;
+      const deliveryFeesMap = (typeof product.delivery_fees === 'string' ? JSON.parse(product.delivery_fees || '{}') : (product.delivery_fees || {}));
+      const zoneFee = deliveryFeesMap[deliveryCampus] || product.deliveryFee || 0;
+      const finalDeliveryFee = negotiateFee ? customFee : zoneFee;
       const total = product.price * quantity + finalDeliveryFee;
 
       const related = (products || []).filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
@@ -1761,7 +1764,7 @@ const AppContext = createContext();
                       <div className="flex justify-between bg-[var(--bg-card)] rounded-lg px-3 py-2 col-span-2">
                         <span className="text-[var(--text-tertiary)]">Delivery Zones</span>
                         <span className="text-[var(--text-primary)] font-medium text-right">
-                          {(typeof product.delivery_zones === 'string' ? JSON.parse(product.delivery_zones) : (product.delivery || product.delivery_zones || [])).map(z => CAMPUSES.find(c => c.id === z)?.name || z).join(', ')}
+                          {(typeof product.delivery_zones === 'string' ? JSON.parse(product.delivery_zones) : (product.delivery || product.delivery_zones || [])).map(z => `${CAMPUSES.find(c => c.id === z)?.name || z} (${formatPrice(deliveryFeesMap[z] || product.deliveryFee || 0)})`).join(', ')}
                         </span>
                       </div>
                       {product.originalPrice && (
@@ -1788,7 +1791,7 @@ const AppContext = createContext();
                     <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Deliver To</label>
                     <select value={deliveryCampus} onChange={(e) => { setDeliveryCampus(e.target.value); setNegotiateFee(false); }}
                       className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]">
-                      {CAMPUSES.map(c => <option key={c.id} value={c.id} className="bg-[var(--bg-elevated)]">{c.name} — {formatPrice(product.deliveryFee)}</option>)}
+                      {CAMPUSES.map(c => <option key={c.id} value={c.id} className="bg-[var(--bg-elevated)]">{c.name} — {formatPrice(deliveryFeesMap[c.id] || product.deliveryFee || 0)}</option>)}
                     </select>
                     {!canDeliver && (
                       <p className="text-xs text-red-400 mt-2">⚠️ This seller does not deliver to {campusName}. <button onClick={async () => { try { const d = await api.get('/auth/user/' + product.seller_id); setChatPartner(d.user || { id: product.seller_id, name: product.seller, phone: '+256700000000' }); } catch { setChatPartner({ id: product.seller_id, name: product.seller, phone: '+256700000000' }); } setCurrentPage('chat'); }} className="underline hover:text-red-300">Message seller to arrange</button></p>
@@ -2196,7 +2199,7 @@ const AppContext = createContext();
       const [formData, setFormData] = useState({
         title: '', price: '', category: 'electronics', condition: 'Brand New',
         description: '', deliveryZones: ['makerere'], deliveryFee: '',
-        images: [], returnPolicy: 'no-returns'
+        deliveryFees: {}, images: [], returnPolicy: 'no-returns'
       });
 
       if (!user) {
@@ -2217,6 +2220,8 @@ const AppContext = createContext();
         setError('');
         try {
           const validImages = formData.images.filter(u => u && u.trim());
+          const feesMap = {};
+          formData.deliveryZones.forEach(z => { feesMap[z] = parseInt(formData.deliveryFees[z]) || parseInt(formData.deliveryFee) || 0; });
           await api.post('/products', {
             title: formData.title,
             price: parseInt(formData.price),
@@ -2225,12 +2230,13 @@ const AppContext = createContext();
             description: formData.description,
             delivery_zones: formData.deliveryZones,
             delivery_fee: parseInt(formData.deliveryFee) || 0,
+            delivery_fees: feesMap,
             return_policy: formData.returnPolicy,
             images: validImages,
           });
           alert('Listing published successfully!');
           setStep(1);
-          setFormData({ title: '', price: '', category: 'electronics', condition: 'Brand New', description: '', deliveryZones: ['makerere'], deliveryFee: '', images: [], returnPolicy: 'no-returns' });
+          setFormData({ title: '', price: '', category: 'electronics', condition: 'Brand New', description: '', deliveryZones: ['makerere'], deliveryFee: '', deliveryFees: {}, images: [], returnPolicy: 'no-returns' });
         } catch (err) {
           setError(err.message || 'Failed to publish listing.');
         } finally {
@@ -2324,30 +2330,41 @@ const AppContext = createContext();
                 </div>
 
                 <div>
-                  <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Delivery Zones</label>
-                  <div className="flex flex-wrap gap-2">
-                    {CAMPUSES.map(c => (
-                      <button key={c.id}
-                        onClick={() => {
-                          const zones = formData.deliveryZones.includes(c.id)
-                            ? formData.deliveryZones.filter(z => z !== c.id)
-                            : [...formData.deliveryZones, c.id];
-                          setFormData({...formData, deliveryZones: zones});
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${formData.deliveryZones.includes(c.id) ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'}`}>
-                        {c.name}
-                      </button>
-                    ))}
+                  <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Delivery Zones & Fees</label>
+                  <p className="text-xs text-[var(--text-tertiary)] mb-3">Select campuses you deliver to and set a fee for each</p>
+                  <div className="space-y-2">
+                    {CAMPUSES.map(c => {
+                      const selected = formData.deliveryZones.includes(c.id);
+                      return (
+                        <div key={c.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${selected ? 'border-[var(--border-hover)] bg-[var(--bg-card)]' : 'border-[var(--border-color)] opacity-60'}`}>
+                          <button
+                            onClick={() => {
+                              const zones = selected ? formData.deliveryZones.filter(z => z !== c.id) : [...formData.deliveryZones, c.id];
+                              const fees = {...formData.deliveryFees};
+                              if (!selected) fees[c.id] = parseInt(formData.deliveryFee) || 5000;
+                              else { delete fees[c.id]; }
+                              setFormData({...formData, deliveryZones: zones, deliveryFees: fees});
+                            }}
+                            className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-hover)]'}`}>
+                            {selected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
+                          </button>
+                          <span className="text-sm flex-1">{c.name}</span>
+                          {selected && (
+                            <input type="number" value={formData.deliveryFees[c.id] || ''}
+                              onChange={(e) => setFormData({...formData, deliveryFees: {...formData.deliveryFees, [c.id]: e.target.value}})}
+                              className="w-24 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs text-right text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]"
+                              placeholder="Fee" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-2">Select all campuses you can deliver to</p>
-                </div>
-
-                <div>
-                  <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Default Delivery Fee (UGX)</label>
-                  <input type="number" value={formData.deliveryFee} onChange={(e) => setFormData({...formData, deliveryFee: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] placeholder-[var(--text-quaternary)]"
-                    placeholder="e.g. 5000 (buyers can negotiate this)" />
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">This is negotiable per order</p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs text-[var(--text-tertiary)]">Default fee for new zones:</span>
+                    <input type="number" value={formData.deliveryFee} onChange={(e) => setFormData({...formData, deliveryFee: e.target.value})}
+                      className="w-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] text-right"
+                      placeholder="UGX" />
+                  </div>
                 </div>
 
                 <div>

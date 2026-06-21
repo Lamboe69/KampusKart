@@ -360,8 +360,8 @@ function seed() {
     .map(u => ({ id: u.id, name: u.name, type: u.type === 'shop' ? 'shop' : 'individual', campus: u.campus }));
 
   const insertProduct = db.prepare(`
-    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, rating, reviews_count, image, condition, delivery_zones, delivery_fee, verified, badge, status, images)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (title, price, original_price, category, seller_id, seller_name, seller_type, campus, rating, reviews_count, image, condition, delivery_zones, delivery_fee, delivery_fees, verified, badge, status, images)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const usedProductIds = [];
@@ -426,11 +426,18 @@ function seed() {
         const catImgs = extraImgs[catKey] || [];
         const productImgs = [tpl.img, ...catImgs.sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 4))];
 
+        const feesMap = {};
+        uniqueZones.forEach(z => {
+          if (z === campus) feesMap[z] = deliveryFee;
+          else feesMap[z] = Math.round(deliveryFee * (0.7 + Math.random() * 0.6) / 100) * 100;
+        });
+
         const result = insertProduct.run(
           title, price, origPrice, catKey,
           seller.id, seller.name, seller.type, campus,
           rating, reviews, tpl.img, condition,
-          JSON.stringify(uniqueZones), deliveryFee, verified, badge, 'active',
+          JSON.stringify(uniqueZones), deliveryFee, JSON.stringify(feesMap),
+          verified, badge, 'active',
           JSON.stringify(productImgs)
         );
         usedProductIds.push(result.lastInsertRowid);
