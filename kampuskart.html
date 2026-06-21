@@ -2945,17 +2945,16 @@ const AppContext = createContext();
 
       useEffect(() => {
         if (!user || !chatPartner) return;
+        api.get(`/messages/${chatPartner.id}`).then(d => {
+          setMessages(d.messages || []);
+        }).catch(() => {});
+        api.get(`/auth/user/${chatPartner.id}`).then(d => {
+          setPartnerInfo(d.user || d);
+        }).catch(() => setPartnerInfo(chatPartner));
+
         const token = localStorage.getItem('kampuskart_token');
         const socket = new WebSocket(`ws://${window.location.hostname}:3001?token=${token}`);
-        socket.onopen = () => {
-          setWs(socket);
-          api.get(`/messages/${chatPartner.id}`).then(d => {
-            setMessages(d.messages || []);
-          }).catch(() => {});
-          api.get(`/auth/user/${chatPartner.id}`).then(d => {
-            setPartnerInfo(d.user || d);
-          }).catch(() => setPartnerInfo(chatPartner));
-        };
+        socket.onopen = () => { setWs(socket); };
         socket.onmessage = (e) => {
           try {
             const data = JSON.parse(e.data);
