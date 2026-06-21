@@ -115,7 +115,7 @@ router.put('/:id/status', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Can only dispute shipped or delivered orders' });
   }
 
-  db.prepare('UPDATE orders SET status = ?, updated_at = datetime("now") WHERE id = ?')
+  db.prepare(`UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?`)
     .run(status, req.params.id);
 
   // If order completed, release funds from escrow to seller
