@@ -20,7 +20,7 @@ router.post('/register', (req, res) => {
 
   const id = uuidv4();
   const password_hash = bcrypt.hashSync(password, 10);
-  const userType = (type === 'admin') ? 'buyer' : (type || 'buyer');
+  const userType = (type === 'admin') ? 'buyer' : (type === 'individual' ? 'seller' : (type || 'buyer'));
   const userCampus = campus || 'makerere';
 
   db.prepare(`

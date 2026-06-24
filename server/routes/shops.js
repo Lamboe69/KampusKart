@@ -4,25 +4,33 @@ const db = require('../database');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  const { type, search, campus } = req.query;
+  const { type, search, campus, category } = req.query;
 
-  let sql = 'SELECT id, name, type, rating, reviews_count as reviews, image, description, campus, verified, created_at FROM users WHERE type IN (?, ?)';
-  let params = ['seller', 'shop'];
+  let sql = 'SELECT DISTINCT u.id, u.name, u.type, u.rating, u.reviews_count as reviews, u.image, u.description, u.campus, u.verified, u.created_at FROM users u';
+  let params = [];
+
+  if (category && category !== 'all') {
+    sql += ' JOIN products p ON p.seller_id = u.id AND p.status = ? AND p.category = ?';
+    params.push('active', category);
+  }
+
+  sql += ' WHERE u.type IN (?, ?)';
+  params.push('seller', 'shop');
 
   if (type && type !== 'all') {
-    sql += ' AND type = ?';
+    sql += ' AND u.type = ?';
     params.push(type);
   }
   if (search) {
-    sql += ' AND (name LIKE ? OR description LIKE ?)';
+    sql += ' AND (u.name LIKE ? OR u.description LIKE ?)';
     params.push(`%${search}%`, `%${search}%`);
   }
   if (campus && campus !== 'all') {
-    sql += ' AND campus = ?';
+    sql += ' AND u.campus = ?';
     params.push(campus);
   }
 
-  sql += ' ORDER BY verified DESC, rating DESC';
+  sql += ' ORDER BY u.verified DESC, u.rating DESC';
 
   const sellers = db.prepare(sql).all(...params).map(s => {
     const productCount = db.prepare('SELECT COUNT(*) as count FROM products WHERE seller_id = ? AND status = ?').get(s.id, 'active').count;
