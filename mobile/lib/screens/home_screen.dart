@@ -22,13 +22,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    _HomeTab(),
-    _ProductsTab(),
-    _ShopsTab(),
-    _OrdersTab(),
-    _ProfileTab(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      _HomeTab(onBrowseTap: () => _openBrowse(context)),
+      const _ShopsTab(),
+      const _OrdersTab(),
+      const _ProfileTab(),
+      const WalletScreen(),
+    ];
+  }
+
+  void _openBrowse(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const _ProductsTab()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,12 +48,12 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: const Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search_outlined), activeIcon: const Icon(Icons.search), label: 'Browse'),
-          BottomNavigationBarItem(icon: Icon(Icons.store_outlined), activeIcon: const Icon(Icons.store), label: 'Shops'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_outlined), activeIcon: const Icon(Icons.receipt), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: const Icon(Icons.person), label: 'Profile'),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.store_outlined), activeIcon: Icon(Icons.store), label: 'Shops'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_outlined), activeIcon: Icon(Icons.receipt), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
         ],
       ),
     );
@@ -51,69 +61,79 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab();
+  final VoidCallback onBrowseTap;
+  const _HomeTab({required this.onBrowseTap});
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
+    final displayProducts = provider.filteredProducts;
+    final cats = provider.categories.where((c) => c.id != 'all').toList();
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            Text('KampusKart', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 32)),
+            const SizedBox(height: 8),
+            Text('KampusKart', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 24)),
             const SizedBox(height: 4),
-            Text('Uganda Campus Marketplace', style: TextStyle(color: AppTheme.textSecondary)),
+            Text('Uganda Campus Marketplace', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...cats.map((cat) {
+                  final isSelected = provider.selectedCategory == cat.id;
+                  return ActionChip(
+                    avatar: Text(cat.icon, style: const TextStyle(fontSize: 14)),
+                    label: Text(cat.name, style: const TextStyle(fontSize: 12)),
+                    onPressed: () => provider.setCategory(isSelected ? null : cat.id),
+                    backgroundColor: isSelected ? AppTheme.accent : AppTheme.bgCard,
+                    side: isSelected ? BorderSide.none : BorderSide(color: AppTheme.borderColor),
+                  );
+                }),
+                ActionChip(
+                  avatar: const Icon(Icons.search, size: 16, color: AppTheme.textSecondary),
+                  label: const Text('Browse', style: TextStyle(fontSize: 12)),
+                  onPressed: onBrowseTap,
+                  backgroundColor: AppTheme.bgElevated,
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Featured Products', style: Theme.of(context).textTheme.headlineMedium),
-                TextButton(onPressed: () {}, child: const Text('View All')),
+                TextButton(onPressed: onBrowseTap, child: const Text('View All')),
               ],
             ),
             const SizedBox(height: 12),
             SizedBox(
               height: 240,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: provider.products.take(8).length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, i) {
-                  final product = provider.products[i];
-                  return SizedBox(
-                    width: 160,
-                    child: ProductCard(
-                      product: product,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => ProductDetailScreen(product: product),
-                      )),
+              child: displayProducts.isEmpty
+                  ? Center(
+                      child: Text('No products in this category', style: TextStyle(color: AppTheme.textSecondary)),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: displayProducts.take(8).length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, i) {
+                        final product = displayProducts[i];
+                        return SizedBox(
+                          width: 160,
+                          child: ProductCard(
+                            product: product,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => ProductDetailScreen(product: product),
+                            )),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Categories', style: Theme.of(context).textTheme.headlineMedium),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: provider.categories.where((c) => c.id != 'all').map((cat) {
-                return ActionChip(
-                  avatar: Text(cat.icon),
-                  label: Text(cat.name, style: const TextStyle(fontSize: 12)),
-                  onPressed: () {},
-                  backgroundColor: AppTheme.bgCard,
-                );
-              }).toList(),
             ),
           ],
         ),
@@ -128,11 +148,12 @@ class _ProductsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
-    return SafeArea(
-      child: Column(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Browse Products'), centerTitle: true),
+      body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search products...',

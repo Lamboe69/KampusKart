@@ -1,5 +1,5 @@
 class Shop {
-  final int id;
+  final String id;
   final String name;
   final String description;
   final String image;
@@ -29,7 +29,7 @@ class Shop {
 
   factory Shop.fromJson(Map<String, dynamic> json) {
     return Shop(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       image: json['image'] ?? '',
@@ -39,7 +39,7 @@ class Shop {
       reviews: json['reviews'] ?? 0,
       products: json['products'] ?? 0,
       sales: json['sales'] ?? 0,
-      verified: json['verified'] ?? false,
+      verified: json['verified'] == true || json['verified'] == 1,
       since: json['since'] ?? '',
     );
   }

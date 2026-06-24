@@ -1,6 +1,6 @@
 class Order {
-  final int id;
-  final int userId;
+  final String id;
+  final String userId;
   final int productId;
   final String productTitle;
   final String productImage;
@@ -22,9 +22,9 @@ class Order {
     required this.userId,
     required this.productId,
     required this.productTitle,
-    required this.productImage,
+    this.productImage = '',
     required this.price,
-    required this.quantity,
+    this.quantity = 1,
     required this.total,
     this.deliveryFee = 0,
     this.status = 'pending',
@@ -39,23 +39,23 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] ?? 0,
-      userId: json['user_id'] ?? json['userId'] ?? 0,
+      id: json['id']?.toString() ?? '',
+      userId: json['buyer_id']?.toString() ?? json['user_id']?.toString() ?? '',
       productId: json['product_id'] ?? json['productId'] ?? 0,
       productTitle: json['product_title'] ?? json['productTitle'] ?? '',
       productImage: json['product_image'] ?? json['productImage'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
+      price: (json['amount'] ?? json['price'] ?? 0).toDouble(),
       quantity: json['quantity'] ?? 1,
       total: (json['total'] ?? 0).toDouble(),
       deliveryFee: (json['delivery_fee'] ?? json['deliveryFee'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',
       paymentMethod: json['payment_method'] ?? json['paymentMethod'] ?? 'mobile_money',
-      deliveryCampus: json['delivery_campus'] ?? json['deliveryCampus'] ?? '',
+      deliveryCampus: json['delivery_to'] ?? json['delivery_campus'] ?? json['campus'] ?? '',
       sellerName: json['seller_name'] ?? json['sellerName'] ?? '',
       buyerName: json['buyer_name'] ?? json['buyerName'] ?? '',
       buyerPhone: json['buyer_phone'] ?? json['buyerPhone'],
       createdAt: json['created_at'] ?? json['createdAt'] ?? '',
-      deliveredAt: json['delivered_at'] ?? json['deliveredAt'],
+      deliveredAt: json['updated_at'] ?? json['delivered_at'] ?? json['deliveredAt'],
     );
   }
 

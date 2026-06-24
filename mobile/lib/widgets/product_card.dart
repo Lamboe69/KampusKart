@@ -73,15 +73,19 @@ class ProductCard extends StatelessWidget {
                   Text(product.title, maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(_formatPrice, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 13)),
-                      if (product.hasDiscount) ...[
-                        const SizedBox(width: 6),
-                        Text('UGX ${NumberFormat('#,###').format(product.originalPrice!.toInt())}',
-                          style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11, decoration: TextDecoration.lineThrough)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Text(_formatPrice, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 13)),
+                        if (product.hasDiscount) ...[
+                          const SizedBox(width: 6),
+                          Text('UGX ${NumberFormat('#,###').format(product.originalPrice!.toInt())}',
+                            style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11, decoration: TextDecoration.lineThrough)),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(

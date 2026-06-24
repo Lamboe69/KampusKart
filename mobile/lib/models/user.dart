@@ -1,8 +1,9 @@
 class User {
-  final int id;
+  final String id;
   final String name;
   final String email;
   final String role;
+  final String? phone;
   final String? image;
   final String? campus;
   final bool verified;
@@ -17,7 +18,7 @@ class User {
     required this.id,
     required this.name,
     required this.email,
-    required this.role,
+    this.phone,
     this.image,
     this.campus,
     this.verified = false,
@@ -27,23 +28,24 @@ class User {
     this.balance = 0,
     this.pending = 0,
     this.totalEarned = 0,
-  });
+  }) : role = sellerType == 'shop' ? 'seller' : sellerType == 'admin' ? 'admin' : sellerType;
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] ?? json['role'] ?? 'buyer';
     return User(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      role: json['role'] ?? 'buyer',
-      image: json['image'],
+      phone: json['phone'],
+      image: json['image'] ?? json['avatar'],
       campus: json['campus'],
-      verified: json['verified'] ?? false,
+      verified: json['verified'] == true || json['verified'] == 1,
       shopName: json['shop_name'],
       shopDescription: json['shop_description'],
-      sellerType: json['seller_type'] ?? 'individual',
-      balance: (json['balance'] ?? 0).toDouble(),
-      pending: (json['pending'] ?? 0).toDouble(),
-      totalEarned: (json['total_earned'] ?? 0).toDouble(),
+      sellerType: json['seller_type'] ?? type == 'shop' ? 'shop' : 'individual',
+      balance: (json['wallet_balance'] ?? json['balance'] ?? 0).toDouble(),
+      pending: (json['wallet_pending'] ?? json['pending'] ?? 0).toDouble(),
+      totalEarned: (json['wallet_total_earned'] ?? json['total_earned'] ?? 0).toDouble(),
     );
   }
 

@@ -20,6 +20,7 @@ class AppProvider extends ChangeNotifier {
   List<Category> _categories = [];
   List<Campus> _campuses = [];
   List<Product> _cart = [];
+  String? _selectedCategory;
   bool _loading = false;
   String? _error;
 
@@ -30,6 +31,10 @@ class AppProvider extends ChangeNotifier {
   List<Category> get categories => _categories;
   List<Campus> get campuses => _campuses;
   List<Product> get cart => _cart;
+  String? get selectedCategory => _selectedCategory;
+  List<Product> get filteredProducts => _selectedCategory == null || _selectedCategory == 'all'
+      ? _products
+      : _products.where((p) => p.category == _selectedCategory).toList();
   bool get loading => _loading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
@@ -111,6 +116,11 @@ class AppProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  void setCategory(String? category) {
+    _selectedCategory = category;
+    notifyListeners();
   }
 
   Future<void> logout() async {

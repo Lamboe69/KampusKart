@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Product {
   final int id;
   final String title;
@@ -50,10 +52,23 @@ class Product {
       if (z is List) return z.cast<String>();
       if (z is String) {
         try {
+          final parsed = List<dynamic>.from(jsonDecode(z) as List);
+          return parsed.cast<String>();
+        } catch (_) {
           return z.split(',').map((e) => e.trim()).toList();
-        } catch (_) {}
+        }
       }
       return [];
+    }
+
+    Map<String, dynamic> parseFees(dynamic f) {
+      if (f is Map) return f.cast<String, dynamic>();
+      if (f is String) {
+        try {
+          return Map<String, dynamic>.from(jsonDecode(f) as Map);
+        } catch (_) {}
+      }
+      return {};
     }
 
     return Product(
@@ -74,7 +89,7 @@ class Product {
       status: json['status'] ?? 'active',
       badge: json['badge'],
       deliveryFee: (json['delivery_fee'] ?? json['deliveryFee'] ?? 0).toDouble(),
-      deliveryFees: json['delivery_fees'] ?? json['deliveryFees'] ?? {},
+      deliveryFees: parseFees(json['delivery_fees'] ?? json['deliveryFees'] ?? {}),
       deliveryZones: parseZones(json['delivery_zones'] ?? json['deliveryZones'] ?? []),
       returnPolicy: json['return_policy'] ?? json['returnPolicy'] ?? 'no-returns',
       createdAt: json['created_at'] ?? json['createdAt'] ?? '',
