@@ -10,8 +10,28 @@ class WalletScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
-    final u = provider.user!;
+    if (!provider.isLoggedIn) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Wallet')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🔒', style: TextStyle(fontSize: 64)),
+              const SizedBox(height: 16),
+              const Text('Sign in to access your wallet', style: TextStyle(color: AppTheme.textSecondary)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/auth'),
+                child: const Text('Sign In'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
+    final u = provider.user!;
     return Scaffold(
       appBar: AppBar(title: const Text('Wallet')),
       body: SingleChildScrollView(

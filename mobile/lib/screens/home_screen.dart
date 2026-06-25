@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/product.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/product_card.dart';
@@ -76,9 +78,15 @@ class _HomeTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            Text('KampusKart', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 24)),
-            const SizedBox(height: 4),
-            Text('Uganda Campus Marketplace', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            Center(
+              child: Column(
+                children: [
+                  Text('KampusKart', style: Theme.of(context).textTheme.headlineLarge),
+                  const SizedBox(height: 4),
+                  Text('Uganda Campus Marketplace', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -106,35 +114,43 @@ class _HomeTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Featured Products', style: Theme.of(context).textTheme.headlineMedium),
+                Text('Featured Products', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20)),
                 TextButton(onPressed: onBrowseTap, child: const Text('View All')),
               ],
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 240,
-              child: displayProducts.isEmpty
-                  ? Center(
-                      child: Text('No products in this category', style: TextStyle(color: AppTheme.textSecondary)),
-                    )
-                  : ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: displayProducts.take(8).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, i) {
-                        final product = displayProducts[i];
-                        return SizedBox(
-                          width: 160,
-                          child: ProductCard(
-                            product: product,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => ProductDetailScreen(product: product),
-                            )),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            if (displayProducts.isEmpty)
+              Center(
+                child: Text('No products in this category', style: TextStyle(color: AppTheme.textSecondary)),
+              )
+            else ...[
+              _FeaturedCarousel(products: displayProducts.take(8).toList()),
+              if (displayProducts.length > 8) ...[
+                const SizedBox(height: 24),
+                Text('More Products', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20)),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.7,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: displayProducts.length - 8,
+                  itemBuilder: (context, i) {
+                    final product = displayProducts.skip(8).toList()[i];
+                    return ProductCard(
+                      product: product,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => ProductDetailScreen(product: product),
+                      )),
+                    );
+                  },
+                ),
+              ],
+            ],
           ],
         ),
       ),
@@ -188,6 +204,104 @@ class _ProductsTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FeaturedCarousel extends StatefulWidget {
+  final List<Product> products;
+  const _FeaturedCarousel({required this.products});
+
+  @override
+  State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
+}
+
+class _FeaturedCarouselState extends State<_FeaturedCarousel> {
+  late PageController _controller;
+  late Timer _timer;
+  int _currentPage = 0;
+
+  int get _pageCount => (widget.products.length / 2).ceil();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) {
+      if (!mounted) return;
+      final next = (_currentPage + 1) % _pageCount;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.products.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: [
+        SizedBox(
+          height: 240,
+          child: PageView.builder(
+            controller: _controller,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemCount: _pageCount,
+            itemBuilder: (context, pageIndex) {
+              final start = pageIndex * 2;
+              return Row(
+                children: [
+                  Expanded(
+                    child: ProductCard(
+                      product: widget.products[start],
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => ProductDetailScreen(product: widget.products[start]),
+                      )),
+                    ),
+                  ),
+                  if (start + 1 < widget.products.length) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ProductCard(
+                        product: widget.products[start + 1],
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(product: widget.products[start + 1]),
+                        )),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_pageCount > 1)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_pageCount, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: _currentPage == i ? 20 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _currentPage == i ? AppTheme.accent : AppTheme.borderColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
+      ],
     );
   }
 }
