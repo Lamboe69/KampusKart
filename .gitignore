@@ -9,6 +9,7 @@ web/server/kampuskart.db-shm
 web/backend/target/
 *.jar
 *.jar.original
+!web/server/package-lock.json
 package-lock.json
 
 # Flutter

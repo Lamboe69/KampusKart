@@ -3071,7 +3071,8 @@ const AppContext = createContext();
         }).catch(() => setPartnerInfo(chatPartner));
 
         const token = localStorage.getItem('kampuskart_token');
-        const socket = new WebSocket(`ws://${window.location.hostname}:3001?token=${token}`);
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${wsProtocol}//${window.location.host}?token=${token}`);
         socket.onopen = () => { setWs(socket); };
         socket.onmessage = (e) => {
           try {

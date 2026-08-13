@@ -1,0 +1,11 @@
+node_modules
+.git
+*.db
+*.db-shm
+*.db-wal
+mobile/
+web/server/node_modules
+web/server/*.db
+web/server/*.db-shm
+web/server/*.db-wal
+web/backend/
