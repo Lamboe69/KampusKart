@@ -2253,16 +2253,20 @@ const AppContext = createContext();
     };
 
     const SellPage = () => {
-      const { user, setShowAuth } = useApp();
+      const { user, setShowAuth, products, setSelectedProduct, setCurrentPage } = useApp();
+      const formatPrice = (p) => `UGX ${(p || 0).toLocaleString()}`;
       const [step, setStep] = useState(1);
       const [listingType, setListingType] = useState('individual');
       const [submitting, setSubmitting] = useState(false);
       const [error, setError] = useState('');
+      const [dragOver, setDragOver] = useState(false);
       const [formData, setFormData] = useState({
         title: '', price: '', category: 'electronics', condition: 'Brand New',
         description: '', deliveryZones: ['makerere'], deliveryFee: '',
         deliveryFees: {}, images: [], returnPolicy: 'no-returns'
       });
+
+      const myListings = (products || []).filter(p => p.seller_id === user?.id);
 
       if (!user) {
         return (
@@ -2277,6 +2281,27 @@ const AppContext = createContext();
         );
       }
 
+      const handleUpload = async (files) => {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) { setError('File too large (max 10MB): ' + file.name); continue; }
+          const fd = new FormData();
+          fd.append('file', file);
+          try {
+            const res = await api.upload('/upload', fd);
+            setFormData(f => ({...f, images: [...f.images, res.url]}));
+          } catch (err) {
+            setError('Upload failed: ' + file.name);
+          }
+        }
+      };
+
+      const handleDrop = async (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (files.length) await handleUpload(files);
+      };
+
       const handleSubmit = async () => {
         setSubmitting(true);
         setError('');
@@ -2284,10 +2309,11 @@ const AppContext = createContext();
           const validImages = formData.images.filter(u => u && u.trim());
           const feesMap = {};
           formData.deliveryZones.forEach(z => { feesMap[z] = parseInt(formData.deliveryFees[z]) || parseInt(formData.deliveryFee) || 0; });
+          const cat = CATEGORIES.find(c => c.id === formData.category);
           await api.post('/products', {
             title: formData.title,
             price: parseInt(formData.price),
-            category: formData.category,
+            category: cat ? cat.name : formData.category,
             condition: formData.condition,
             description: formData.description,
             image: validImages.length > 0 ? JSON.stringify(validImages) : '',
@@ -2307,17 +2333,26 @@ const AppContext = createContext();
         }
       };
 
+      const stepLabels = ['Basics', 'Details', 'Photos & Publish'];
+      const canContinue1 = formData.title.trim() && formData.price;
+      const canContinue2 = formData.description.trim();
+
       return (
         <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pt-20">
-          <div className="w-full max-w-2xl mx-auto px-8 py-8">
+          <div className="w-full max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
             <SectionEyebrow label="Sell" />
-            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-8">List Your Item</h1>
+            <h1 className="text-2xl md:text-3xl font-semibold mt-2 mb-2">List Your Item</h1>
+            <p className="text-sm text-[var(--text-secondary)] mb-6">Sell to thousands of students across Ugandan campuses</p>
 
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-2 mb-8">
               {[1, 2, 3].map(s => (
-                <div key={s} className="flex items-center gap-4 flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s <= step ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-elevated)] text-[var(--text-primary)]'}`}>
-                    {s}
+                <div key={s} className="flex items-center gap-2 flex-1">
+                  <button onClick={() => { if (s < step) setStep(s); }}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === step ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-shadow)]' : s < step ? 'bg-[var(--accent)]/20 text-[var(--accent)] cursor-pointer hover:bg-[var(--accent)]/30' : 'bg-[var(--bg-elevated)] text-[var(--text-quaternary)]'}`}>
+                    {s < step ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg> : s}
+                  </button>
+                  <div className="flex-1 hidden sm:block">
+                    <div className={`text-[10px] font-medium ${s <= step ? 'text-[var(--text-primary)]' : 'text-[var(--text-quaternary)]'}`}>{stepLabels[s - 1]}</div>
                   </div>
                   {s < 3 && <div className={`flex-1 h-px ${s < step ? 'bg-[var(--accent)]' : 'bg-[var(--border-color)]'}`} />}
                 </div>
@@ -2328,18 +2363,20 @@ const AppContext = createContext();
               <div className="space-y-6 animate-fade-in-up">
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-3 block">Seller Type</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-xl border cursor-pointer transition-all ${listingType === 'individual' ? 'border-[var(--border-hover)] bg-[var(--bg-card)]' : 'border-[var(--border-color)]'}`}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${listingType === 'individual' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border-color)] hover:border-[var(--border-hover)]'}`}
                       onClick={() => setListingType('individual')}>
                       <div className="text-2xl mb-2">👤</div>
-                      <div className="font-medium">Individual Seller</div>
-                      <div className="text-xs text-[var(--text-secondary)] mt-1">10% commission per sale</div>
+                      <div className="font-semibold text-sm">Individual Seller</div>
+                      <div className="text-xs text-[var(--accent)] mt-1 font-medium">10% commission per sale</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)] mt-1">Pay only when you sell</div>
                     </div>
-                    <div className={`p-4 rounded-xl border cursor-pointer transition-all ${listingType === 'shop' ? 'border-[var(--border-hover)] bg-[var(--bg-card)]' : 'border-[var(--border-color)]'}`}
+                    <div className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${listingType === 'shop' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border-color)] hover:border-[var(--border-hover)]'}`}
                       onClick={() => setListingType('shop')}>
                       <div className="text-2xl mb-2">🏪</div>
-                      <div className="font-medium">Registered Shop</div>
-                      <div className="text-xs text-[var(--text-secondary)] mt-1">UGX 50,000/month subscription</div>
+                      <div className="font-semibold text-sm">Registered Shop</div>
+                      <div className="text-xs text-[var(--accent)] mt-1 font-medium">UGX 50,000/month</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)] mt-1">Unlimited listings</div>
                     </div>
                   </div>
                 </div>
@@ -2347,22 +2384,27 @@ const AppContext = createContext();
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Product Title</label>
                   <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] placeholder-[var(--text-quaternary)]"
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors placeholder-[var(--text-quaternary)]"
                     placeholder="e.g. iPhone 14 Pro Max 256GB" />
+                  {formData.title && <div className="text-[10px] text-[var(--text-tertiary)] mt-1 text-right">{formData.title.length}/100</div>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Price (UGX)</label>
-                    <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] placeholder-[var(--text-quaternary)]"
-                      placeholder="e.g. 3500000" />
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[var(--text-tertiary)] font-medium">UGX</span>
+                      <input type="number" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors placeholder-[var(--text-quaternary)]"
+                        placeholder="3,500,000" />
+                    </div>
+                    {formData.price > 0 && <div className="text-[10px] text-[var(--text-tertiary)] mt-1">You receive: UGX {Math.round(parseInt(formData.price) * 0.9).toLocaleString()}</div>}
                   </div>
                   <div>
                     <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Category</label>
                     <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]">
-                      {CATEGORIES.filter(c => c.id !== 'all').map(c => <option key={c.id} value={c.id} className="bg-[var(--bg-elevated)]">{c.name}</option>)}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors appearance-none">
+                      {CATEGORIES.filter(c => c.id !== 'all').map(c => <option key={c.id} value={c.id} className="bg-[var(--bg-elevated)]">{c.icon} {c.name}</option>)}
                     </select>
                   </div>
                 </div>
@@ -2370,16 +2412,21 @@ const AppContext = createContext();
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Condition</label>
                   <div className="flex gap-3">
-                    {['Brand New', 'Second Hand', 'Refurbished'].map(c => (
-                      <button key={c} onClick={() => setFormData({...formData, condition: c})}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${formData.condition === c ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'}`}>
-                        {c}
+                    {[{val: 'Brand New', icon: '✨', desc: 'Unused'}, {val: 'Second Hand', icon: '🔄', desc: 'Used'}, {val: 'Refurbished', icon: '🔧', desc: 'Restored'}].map(c => (
+                      <button key={c.val} onClick={() => setFormData({...formData, condition: c.val})}
+                        className={`flex-1 px-3 py-3 rounded-xl text-center transition-all ${formData.condition === c.val ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-shadow)]' : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--border-hover)]'}`}>
+                        <div className="text-lg mb-0.5">{c.icon}</div>
+                        <div className="text-xs font-medium">{c.val}</div>
+                        <div className="text-[10px] opacity-70">{c.desc}</div>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <Button onClick={() => setStep(2)} className="w-full justify-center">Continue</Button>
+                <Button onClick={() => setStep(2)} className="w-full justify-center" disabled={!canContinue1}>
+                  Continue to Details
+                </Button>
+                {!canContinue1 && <p className="text-[10px] text-[var(--text-quaternary)] text-center">Enter a title and price to continue</p>}
               </div>
             )}
 
@@ -2388,8 +2435,9 @@ const AppContext = createContext();
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Description</label>
                   <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] placeholder-[var(--text-quaternary)] h-32 resize-none"
-                    placeholder="Describe your product in detail..." />
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors placeholder-[var(--text-quaternary)] h-32 resize-none"
+                    placeholder="Describe your product condition, included accessories, reason for selling..." />
+                  {formData.description && <div className="text-[10px] text-[var(--text-tertiary)] mt-1 text-right">{formData.description.length}/2000</div>}
                 </div>
 
                 <div>
@@ -2399,7 +2447,7 @@ const AppContext = createContext();
                     {CAMPUSES.map(c => {
                       const selected = formData.deliveryZones.includes(c.id);
                       return (
-                        <div key={c.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${selected ? 'border-[var(--border-hover)] bg-[var(--bg-card)]' : 'border-[var(--border-color)] opacity-60'}`}>
+                        <div key={c.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selected ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border-color)] opacity-60 hover:opacity-80'}`}>
                           <button
                             onClick={() => {
                               const zones = selected ? formData.deliveryZones.filter(z => z !== c.id) : [...formData.deliveryZones, c.id];
@@ -2411,12 +2459,18 @@ const AppContext = createContext();
                             className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-hover)]'}`}>
                             {selected && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
-                          <span className="text-sm flex-1">{c.name}</span>
+                          <div className="flex-1">
+                            <span className="text-sm font-medium">{c.name}</span>
+                            <span className="text-[10px] text-[var(--text-tertiary)] ml-1">{c.location}</span>
+                          </div>
                           {selected && (
-                            <input type="number" value={formData.deliveryFees[c.id] || ''}
-                              onChange={(e) => setFormData({...formData, deliveryFees: {...formData.deliveryFees, [c.id]: e.target.value}})}
-                              className="w-24 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs text-right text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]"
-                              placeholder="Fee" />
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-tertiary)]">UGX</span>
+                              <input type="number" value={formData.deliveryFees[c.id] || ''}
+                                onChange={(e) => setFormData({...formData, deliveryFees: {...formData.deliveryFees, [c.id]: e.target.value}})}
+                                className="w-28 bg-[var(--bg-elevated)] border border-[var(--border-color)] rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-right text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors"
+                                placeholder="5,000" />
+                            </div>
                           )}
                         </div>
                       );
@@ -2424,101 +2478,148 @@ const AppContext = createContext();
                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-xs text-[var(--text-tertiary)]">Default fee for new zones:</span>
-                    <input type="number" value={formData.deliveryFee} onChange={(e) => setFormData({...formData, deliveryFee: e.target.value})}
-                      className="w-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)] text-right"
-                      placeholder="UGX" />
+                    <div className="relative">
+                      <input type="number" value={formData.deliveryFee} onChange={(e) => setFormData({...formData, deliveryFee: e.target.value})}
+                        className="w-24 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors text-right"
+                        placeholder="5,000" />
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">Return Policy</label>
-                  <select value={formData.returnPolicy} onChange={(e) => setFormData({...formData, returnPolicy: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]">
-                    <option value="no-returns" className="bg-[var(--bg-elevated)]">No Returns</option>
-                    <option value="3-day" className="bg-[var(--bg-elevated)]">3-Day Return</option>
-                    <option value="exchange" className="bg-[var(--bg-elevated)]">Exchange Only</option>
-                  </select>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[{val: 'no-returns', label: 'No Returns', icon: '🚫'}, {val: '3-day', label: '3-Day Return', icon: '📅'}, {val: 'exchange', label: 'Exchange Only', icon: '🔄'}].map(opt => (
+                      <button key={opt.val} onClick={() => setFormData({...formData, returnPolicy: opt.val})}
+                        className={`p-3 rounded-xl text-center transition-all ${formData.returnPolicy === opt.val ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-shadow)]' : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--border-hover)]'}`}>
+                        <div className="text-base mb-0.5">{opt.icon}</div>
+                        <div className="text-[11px] font-medium">{opt.label}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => setStep(1)} className="flex-1 justify-center">Back</Button>
-                  <Button onClick={() => setStep(3)} className="flex-1 justify-center">Continue</Button>
+                  <Button onClick={() => setStep(3)} className="flex-1 justify-center" disabled={!canContinue2}>Continue to Photos</Button>
                 </div>
               </div>
             )}
 
             {step === 3 && (
               <div className="space-y-6 animate-fade-in-up">
-                <div className="liquid-glass rounded-xl p-6">
+                <div className="liquid-glass rounded-xl p-6"
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}>
                   <div className="text-center mb-4">
-                    <div className="text-4xl mb-4">📸</div>
-                    <h3 className="font-semibold mb-2">Product Photos</h3>
-                    <p className="text-sm text-[var(--text-secondary)]">Upload from your device or paste image URLs</p>
+                    <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3 transition-all ${dragOver ? 'bg-[var(--accent)]/20 scale-110' : 'bg-[var(--bg-elevated)]'}`}>
+                      <span className="text-3xl">{dragOver ? '📥' : '📸'}</span>
+                    </div>
+                    <h3 className="font-semibold mb-1">Product Photos</h3>
+                    <p className="text-xs text-[var(--text-secondary)]">{formData.images.length > 0 ? `${formData.images.length} photo${formData.images.length !== 1 ? 's' : ''} added` : 'Add photos to help sell your item faster'}</p>
                   </div>
 
-                  <div className="flex items-center gap-3 mb-4">
-                    <label className="flex-1 cursor-pointer">
-                      <div className="w-full py-3 rounded-xl border-2 border-dashed border-brand/40 text-sm text-brand font-medium hover:border-brand hover:bg-brand/5 transition-all text-center">
-                        Upload from Device
+                  {formData.images.length === 0 ? (
+                    <label className="block cursor-pointer">
+                      <div className={`py-8 rounded-xl border-2 border-dashed transition-all text-center ${dragOver ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--border-hover)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5'}`}>
+                        <div className="text-4xl mb-2">+</div>
+                        <div className="text-sm font-medium text-[var(--accent)]">Click to upload or drag & drop</div>
+                        <div className="text-[10px] text-[var(--text-tertiary)] mt-1">JPG, PNG, GIF, WebP — max 10MB each</div>
                       </div>
                       <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
-                        const files = Array.from(e.target.files);
-                        for (const file of files) {
-                          const fd = new FormData();
-                          fd.append('file', file);
-                          try {
-                            const res = await api.upload('/api/upload', fd);
-                            setFormData(f => ({...f, images: [...f.images, res.url]}));
-                          } catch (err) {
-                            console.error('Upload failed:', err);
-                          }
-                        }
+                        await handleUpload(Array.from(e.target.files));
                         e.target.value = '';
                       }} />
                     </label>
-                  </div>
-
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {formData.images.map((url, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-elevated)]">
-                          {url ? <img src={resolveImageUrl(url)} alt="" className="w-full h-full object-cover" onError={onImgError} /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-quaternary)] text-xs">No img</div>}
-                        </div>
-                        <input type="url" value={url} onChange={(e) => { const imgs = [...formData.images]; imgs[i] = e.target.value; setFormData({...formData, images: imgs}); }}
-                          className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]"
-                          placeholder="Or paste image URL here..." />
-                        <button onClick={() => { setFormData({...formData, images: formData.images.filter((_, j) => j !== i)}); }}
-                          className="text-red-400 hover:text-red-300 flex-shrink-0">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                        </button>
+                  ) : (
+                    <div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+                        {formData.images.map((url, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-[var(--bg-elevated)] group">
+                            {url ? <img src={resolveImageUrl(url)} alt="" className="w-full h-full object-cover" onError={onImgError} /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-quaternary)] text-xs">No img</div>}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <button onClick={() => setFormData(f => ({...f, images: f.images.filter((_, j) => j !== i)}))}
+                                className="w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center text-white hover:bg-red-500 transition-colors">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                              </button>
+                            </div>
+                            {i === 0 && <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-[var(--accent)] text-[9px] font-bold text-white">Main</div>}
+                          </div>
+                        ))}
+                        {formData.images.length < 20 && (
+                          <label className="aspect-square rounded-lg border-2 border-dashed border-[var(--border-hover)] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all">
+                            <div className="text-2xl text-[var(--text-quaternary)]">+</div>
+                            <div className="text-[9px] text-[var(--text-quaternary)]">Add</div>
+                            <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+                              await handleUpload(Array.from(e.target.files));
+                              e.target.value = '';
+                            }} />
+                          </label>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  {formData.images.length < 20 && (
-                    <button onClick={() => setFormData({...formData, images: [...formData.images, '']})}
-                      className="mt-3 w-full py-2 rounded-xl border-2 border-dashed border-[var(--border-hover)] text-sm text-[var(--text-tertiary)] hover:border-[var(--border-hover)] hover:text-[var(--text-secondary)] transition-colors">
-                      + Add Photo URL
-                    </button>
+                      <label className="block cursor-pointer">
+                        <div className="w-full py-2 rounded-xl border border-[var(--border-color)] text-xs text-[var(--text-secondary)] font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all text-center">
+                          Upload from Device
+                        </div>
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+                          await handleUpload(Array.from(e.target.files));
+                          e.target.value = '';
+                        }} />
+                      </label>
+                    </div>
                   )}
                 </div>
 
                 <div className="liquid-glass rounded-xl p-6">
                   <h3 className="font-semibold mb-4">Listing Summary</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Title</span><span>{formData.title || 'Not set'}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Price</span><span>{formData.price ? `UGX ${parseInt(formData.price).toLocaleString()}` : 'Not set'}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Category</span><span>{CATEGORIES.find(c => c.id === formData.category)?.name}</span></div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center"><span className="text-[var(--text-secondary)]">Title</span><span className="font-medium text-right max-w-[60%] truncate">{formData.title || 'Not set'}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
+                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Price</span><span className="font-semibold text-[var(--accent)]">{formData.price ? `UGX ${parseInt(formData.price).toLocaleString()}` : 'Not set'}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
+                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">You Receive</span><span className="font-medium text-green-400">{formData.price ? `UGX ${Math.round(parseInt(formData.price) * 0.9).toLocaleString()}` : 'Not set'}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
+                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Category</span><span>{CATEGORIES.find(c => c.id === formData.category)?.icon} {CATEGORIES.find(c => c.id === formData.category)?.name}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
                     <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Condition</span><span>{formData.condition}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Delivery To</span><span>{formData.deliveryZones.map(z => CAMPUSES.find(c => c.id === z)?.name.split(' ')[0]).join(', ')}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Return Policy</span><span>{formData.returnPolicy === 'no-returns' ? 'No Returns' : formData.returnPolicy === '3-day' ? '3-Day Return' : 'Exchange Only'}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
+                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Delivery</span><span className="text-right max-w-[60%]">{formData.deliveryZones.map(z => CAMPUSES.find(c => c.id === z)?.name.split(' ')[0]).join(', ') || 'None'}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
+                    <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Photos</span><span>{formData.images.filter(u => u && u.trim()).length}</span></div>
+                    <div className="h-px bg-[var(--border-color)]" />
                     <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Platform Fee</span><span>{listingType === 'shop' ? 'UGX 50,000/month' : '10% per sale'}</span></div>
                   </div>
                 </div>
 
-                {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+                {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 text-center">{error}</div>}
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => setStep(2)} className="flex-1 justify-center" disabled={submitting}>Back</Button>
-                  <Button onClick={handleSubmit} className="flex-1 justify-center" disabled={submitting}>{submitting ? 'Publishing...' : 'Publish Listing'}</Button>
+                  <Button onClick={handleSubmit} className="flex-1 justify-center" disabled={submitting}>
+                    {submitting ? (
+                      <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Publishing...</span>
+                    ) : 'Publish Listing'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {myListings.length > 0 && step === 1 && (
+              <div className="mt-10">
+                <h2 className="text-lg font-semibold mb-4">Your Listings ({myListings.length})</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {myListings.slice(0, 6).map((p, i) => (
+                    <div key={p.id} className="liquid-glass rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform card-press group"
+                      onClick={() => { setSelectedProduct(p); setCurrentPage('product'); }}>
+                      <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
+                        <img src={resolveImageUrl(p.image)} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      </div>
+                      <div className="p-3">
+                        <h4 className="text-xs font-medium line-clamp-1">{p.title}</h4>
+                        <div className="text-[var(--accent)] text-sm font-bold mt-1">{formatPrice(p.price)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
