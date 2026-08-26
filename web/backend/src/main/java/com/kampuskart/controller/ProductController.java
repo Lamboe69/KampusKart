@@ -1,8 +1,12 @@
 package com.kampuskart.controller;
 
-import com.kampuskart.entity.Product;
+import com.kampuskart.dto.CreateProductRequest;
+import com.kampuskart.entity.User;
+import com.kampuskart.repository.UserRepository;
+import com.kampuskart.security.UserPrincipal;
 import com.kampuskart.service.ProductService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -14,9 +18,11 @@ import java.util.Map;
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
+    private final UserRepository userRepo;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, UserRepository userRepo) {
         this.productService = productService;
+        this.userRepo = userRepo;
     }
 
     @GetMapping
@@ -45,14 +51,25 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.create(product));
+    public ResponseEntity<?> create(Authentication auth, @RequestBody CreateProductRequest req) {
+        try {
+            if (auth != null && auth.getPrincipal() instanceof UserPrincipal principal) {
+                User user = userRepo.findById(principal.getId()).orElse(null);
+                if (user != null) {
+                    req.setSellerId(user.getId());
+                    req.setSellerName(user.getName());
+                }
+            }
+            return ResponseEntity.ok(productService.create(req.toProduct()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Product product) {
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CreateProductRequest req) {
         try {
-            return ResponseEntity.ok(productService.update(id, product));
+            return ResponseEntity.ok(productService.update(id, req.toProduct()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
