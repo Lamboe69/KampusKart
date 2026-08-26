@@ -1310,9 +1310,7 @@ const AppContext = createContext();
                       {product.badge && (
                         <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
                       )}
-                      {(product.salesCount || 0) > 5 && (
-                        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-[var(--text-primary)] text-[10px] font-bold">🔥 Popular</div>
-                      )}
+
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-[var(--bg-nav)] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                           <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                             className="bg-[var(--accent)] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent-shadow)]">
@@ -1600,15 +1598,7 @@ const AppContext = createContext();
                           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                         </svg>
                       </button>
-                      <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[var(--bg-overlay)] text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-hover)] animate-pulse" />
-                        {((product.id * 17 + 31) % 25) + 3} watching
-                      </div>
-                      {(product.salesCount || 0) > 5 && (
-                        <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded-full bg-orange-500/80 text-[var(--text-primary)] text-[10px] font-bold">
-                          🔥 Popular
-                        </div>
-                      )}
+
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-[var(--bg-nav)] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                           className="bg-[var(--accent)] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent-shadow)]">
@@ -2230,13 +2220,7 @@ const AppContext = createContext();
                     {product.badge && (
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
                     )}
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[var(--bg-overlay)] text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-hover)] animate-pulse" />
-                      {((product.id * 17 + 31) % 25) + 3} watching
-                    </div>
-                    {(product.salesCount || 0) > 5 && (
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-[var(--text-primary)] text-[10px] font-bold">🔥 Popular</div>
-                    )}
+
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-[var(--bg-nav)] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                         className="bg-[var(--accent)] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[var(--accent-hover)] transition-all shadow-lg shadow-[var(--accent-shadow)]">
