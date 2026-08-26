@@ -2629,23 +2629,36 @@ const AppContext = createContext();
     };
 
     const OrdersPage = () => {
-      const { setCurrentPage, orders, user, refreshOrders, wallet, setWallet, setChatPartner } = useApp();
+      const { setCurrentPage, orders, user, refreshOrders, wallet, setWallet, setChatPartner, refreshWallet } = useApp();
       const [reviewRating, setReviewRating] = useState(0);
       const [reviewComment, setReviewComment] = useState('');
       const [reviewedOrders, setReviewedOrders] = useState([]);
       const [filter, setFilter] = useState('all');
       const [selectedOrder, setSelectedOrder] = useState(null);
 
-      const filtered = filter === 'all' ? (orders || []) : (orders || []).filter(o => o.status === filter);
+      const allOrders = orders || [];
+      const filtered = filter === 'all' ? allOrders : allOrders.filter(o => o.status === filter);
       const formatPrice = (p) => `UGX ${(p || 0).toLocaleString()}`;
+      const filterCounts = { all: allOrders.length, pending: allOrders.filter(o => o.status === 'pending').length, shipped: allOrders.filter(o => o.status === 'shipped').length, delivered: allOrders.filter(o => o.status === 'delivered').length, disputed: allOrders.filter(o => o.status === 'disputed').length };
+
+      const statusConfig = {
+        pending: { color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/30', icon: '⏳', label: 'Pending' },
+        shipped: { color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30', icon: '🚚', label: 'Shipped' },
+        delivered: { color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/30', icon: '📦', label: 'Delivered' },
+        completed: { color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30', icon: '✅', label: 'Completed' },
+        disputed: { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/30', icon: '⚠️', label: 'Disputed' },
+      };
 
       if (!user) {
         return (
           <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pt-20">
             <div className="w-full px-8 py-8 text-center">
-              <div className="text-4xl mb-4">🔒</div>
+              <div className="w-20 h-20 mx-auto rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center mb-4">
+                <span className="text-4xl">🔒</span>
+              </div>
               <h2 className="text-xl font-semibold mb-2">Sign in required</h2>
-              <p className="text-sm text-[var(--text-secondary)] mb-4">Please sign in to view your orders.</p>
+              <p className="text-sm text-[var(--text-secondary)] mb-6">Sign in to view your order history and track deliveries.</p>
+              <Button onClick={() => setShowAuth(true)}>Sign In</Button>
             </div>
           </div>
         );
@@ -2653,199 +2666,245 @@ const AppContext = createContext();
 
       return (
         <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pt-20">
-          <div className="w-full px-4 md:px-8 py-8">
-            <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div>
-                <SectionEyebrow label="Orders" tag={`${(orders||[]).length} total`} />
-                <h1 className="text-2xl md:text-3xl font-semibold mt-2">My Orders</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                {[{ id: 'all', label: 'All' }, { id: 'pending', label: 'Pending' }, { id: 'shipped', label: 'Shipped' }, { id: 'delivered', label: 'Delivered' }, { id: 'disputed', label: 'Disputes' }].map(f => (
-                  <button key={f.id} onClick={() => setFilter(f.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${filter === f.id ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]'}`}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {filtered.map((order, i) => (
-                <Card key={order.id} className="animate-fade-in-up" style={{ animationDelay: `${0.03 * i}s` }}>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-xs font-mono text-[var(--text-tertiary)]">{order.id}</span>
-                        <StatusBadge status={order.status} />
-                        <span className="text-xs text-[var(--text-tertiary)]">{order.created_at?.split('T')[0]}</span>
-                      </div>
-                      <h3 className="font-medium">{order.product_title}</h3>
-                      <div className="flex items-center gap-4 mt-1 text-xs text-[var(--text-secondary)]">
-                        <span>Seller: {order.seller_name}</span>
-                        <span>From: {CAMPUSES.find(c => c.id === order.campus)?.name}</span>
-                        <span>Delivery: {CAMPUSES.find(c => c.id === order.campus)?.name}</span>
-                      </div>
+          <div className="w-full px-4 md:px-8 py-6 md:py-8">
+            <div className="max-w-5xl mx-auto">
+              <div className="mb-6">
+                <SectionEyebrow label="Orders" />
+                <div className="flex items-center justify-between mt-2">
+                  <h1 className="text-2xl md:text-3xl font-semibold">My Orders</h1>
+                  {allOrders.length > 0 && (
+                    <div className="text-right hidden sm:block">
+                      <div className="text-xs text-[var(--text-tertiary)]">Total Spent</div>
+                      <div className="text-lg font-bold text-[var(--accent)]">{formatPrice(allOrders.reduce((sum, o) => sum + (o.total || 0), 0))}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold">{formatPrice(order.total)}</div>
-                      <div className="text-xs text-[var(--text-tertiary)]">+ {formatPrice(order.delivery_fee)} delivery</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {order.status === 'pending' && order.seller_id === user.id && (
-                        <Button className="px-4 py-2 text-xs"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${order.id}/status`, { status: 'shipped' }); refreshOrders(); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Mark Shipped</Button>
-                      )}
-                      {order.status === 'shipped' && order.buyer_id === user.id && (
-                        <Button variant="success" className="px-4 py-2 text-xs"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${order.id}/status`, { status: 'delivered' }); refreshOrders(); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Confirm Delivery</Button>
-                      )}
-                      {order.status === 'delivered' && order.buyer_id === user.id && (
-                        <Button variant="success" className="px-4 py-2 text-xs"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${order.id}/status`, { status: 'completed' }); refreshOrders(); refreshWallet(); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Confirm Receipt</Button>
-                      )}
-
-                      {order.status === 'disputed' && (
-                        <Button variant="danger" className="px-4 py-2 text-xs">View Dispute</Button>
-                      )}
-                      <Button variant="ghost" className="px-3 py-2 text-xs" onClick={async () => {
-                        const partnerId = order.buyer_id === user.id ? order.seller_id : order.buyer_id;
-                        const partnerName = order.buyer_id === user.id ? order.seller_name : user.name;
-                        try { const d = await api.get(`/auth/user/${partnerId}`); setChatPartner(d.user); }
-                        catch { setChatPartner({ id: partnerId, name: partnerName, phone: '+256700000000' }); }
-                        setCurrentPage('chat');
-                      }}>💬</Button>
-                      <Button variant="ghost" className="px-3 py-2" onClick={() => setSelectedOrder(order)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"/></svg>
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="text-6xl mb-4">🛒</div>
-                <h3 className="text-xl font-bold mb-2">Nothing here yet</h3>
-                <p className="text-sm text-[var(--text-secondary)] mb-6">Your orders will appear here once you start shopping.</p>
-                <Button onClick={() => setCurrentPage('home')}>Browse Products</Button>
-              </div>
-            )}
-
-            {selectedOrder && (
-              <div className="fixed inset-0 z-[60] bg-[var(--bg-overlay)] backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-                <div className="liquid-glass rounded-3xl p-8 max-w-lg w-full animate-fade-in-up max-h-[90vh] overflow-y-auto">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold">Order Details</h2>
-                    <button onClick={() => setSelectedOrder(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between"><span className="text-sm text-[var(--text-secondary)]">Order ID</span><span className="text-sm font-mono">{selectedOrder.id}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-sm text-[var(--text-secondary)]">Status</span><StatusBadge status={selectedOrder.status} /></div>
-                    <div className="flex items-center justify-between"><span className="text-sm text-[var(--text-secondary)]">Product</span><span className="text-sm">{selectedOrder.product_title}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-sm text-[var(--text-secondary)]">Seller</span><span className="text-sm">{selectedOrder.seller_name}</span></div>
-                    <div className="flex items-center justify-between"><span className="text-sm text-[var(--text-secondary)]">Delivery</span><span className="text-sm">To: {CAMPUSES.find(c => c.id === selectedOrder.campus)?.name}</span></div>
-                    <div className="border-t border-[var(--border-color)] pt-4 space-y-2">
-                      <div className="flex justify-between text-sm"><span className="text-[var(--text-secondary)]">Subtotal</span><span>{formatPrice((selectedOrder.total || 0) - (selectedOrder.delivery_fee || 0))}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-[var(--text-secondary)]">Delivery Fee</span><span>{formatPrice(selectedOrder.delivery_fee)}</span></div>
-                      <div className="flex justify-between font-semibold"><span>Total</span><span>{formatPrice(selectedOrder.total)}</span></div>
-                    </div>
-
-                    <div className="liquid-glass rounded-xl p-4 mt-4">
-                      <h4 className="text-sm font-semibold mb-3">Escrow Timeline</h4>
-                      <div className="space-y-3">
-                        {[
-                          { label: 'Order Placed', done: true, time: selectedOrder.created_at?.split('T')[0] },
-                          { label: 'Payment Received (Escrow)', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status), time: selectedOrder.created_at?.split('T')[0] },
-                          { label: 'Item Shipped', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status), time: selectedOrder.status === 'pending' ? 'Pending' : '2026-05-27' },
-                          { label: 'Delivery Confirmed', done: ['delivered', 'completed'].includes(selectedOrder.status), time: selectedOrder.status === 'delivered' ? 'Awaiting confirmation' : selectedOrder.status === 'completed' ? '2026-05-26' : 'Pending' },
-                          { label: 'Funds Released', done: selectedOrder.status === 'completed', time: selectedOrder.status === 'completed' ? '2026-05-26' : 'Pending' },
-                        ].map((step, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step.done ? 'bg-[var(--accent-bg)] text-[var(--accent)]' : 'bg-[var(--bg-card)] text-[var(--text-quaternary)]'}`}>
-                              {step.done ? '✓' : (i + 1)}
-                            </div>
-                            <div className="flex-1">
-                              <div className={`text-sm ${step.done ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>{step.label}</div>
-                            </div>
-                            <div className="text-xs text-[var(--text-quaternary)]">{step.time}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {selectedOrder.status === 'pending' && selectedOrder.seller_id === user.id && (
-                      <Button className="w-full justify-center mt-4"
-                        onClick={async () => {
-                          try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'shipped' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                        }}>Mark as Shipped</Button>
-                    )}
-
-                    {selectedOrder.status === 'shipped' && selectedOrder.buyer_id === user.id && (
-                      <div className="flex gap-3 mt-4">
-                        <Button variant="success" className="flex-1 justify-center"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'delivered' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>I Received This</Button>
-                        <Button variant="danger" className="flex-1 justify-center"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Report Issue</Button>
-                      </div>
-                    )}
-
-                    {selectedOrder.status === 'delivered' && selectedOrder.buyer_id === user.id && (
-                      <div className="flex gap-3 mt-4">
-                        <Button variant="success" className="flex-1 justify-center"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'completed' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Confirm Receipt</Button>
-                        <Button variant="danger" className="flex-1 justify-center"
-                          onClick={async () => {
-                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
-                          }}>Report Issue</Button>
-                      </div>
-                    )}
-
-                    {(selectedOrder.status === 'completed' || selectedOrder.status === 'delivered') && selectedOrder.buyer_id === user.id && !reviewedOrders.includes(selectedOrder.id) && (
-                      <div className="liquid-glass rounded-xl p-5 mt-4">
-                        <h4 className="text-sm font-semibold mb-3">⭐ Rate this product</h4>
-                        <div className="flex items-center gap-1 mb-3">
-                          {[1,2,3,4,5].map(s => (
-                            <button key={s} onClick={() => setReviewRating(s)}
-                              className={`text-2xl transition-all ${s <= reviewRating ? 'text-yellow-400 scale-110' : 'text-[var(--text-quaternary)]'}`}>
-                              ★
-                            </button>
-                          ))}
-                        </div>
-                        <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
-                          placeholder="Share your experience with this product..."
-                          className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-border)] placeholder-[var(--text-quaternary)] resize-none h-20 mb-3" />
-                        <Button className="text-xs px-4 py-2" onClick={async () => {
-                          if (!reviewRating) { alert('Select a rating'); return; }
-                          try {
-                            await api.post('/reviews', { product_id: selectedOrder.product_id, order_id: selectedOrder.id, rating: reviewRating, comment: reviewComment });
-                            setReviewedOrders(prev => [...prev, selectedOrder.id]);
-                            setReviewRating(0);
-                            setReviewComment('');
-                            alert('Review submitted!');
-                          } catch (e) { alert(e.message); }
-                        }}>Submit Review</Button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+
+              {allOrders.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-1 px-1 scrollbar-none">
+                  {[{ id: 'all', label: 'All' }, { id: 'pending', label: 'Pending' }, { id: 'shipped', label: 'Shipped' }, { id: 'delivered', label: 'Delivered' }, { id: 'disputed', label: 'Disputes' }].map(f => (
+                    <button key={f.id} onClick={() => setFilter(f.id)}
+                      className={`px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${filter === f.id ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-shadow)]' : 'bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] border border-[var(--border-color)]'}`}>
+                      {f.label}
+                      {filterCounts[f.id] > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${filter === f.id ? 'bg-white/20' : 'bg-[var(--bg-elevated)]'}`}>{filterCounts[f.id]}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {allOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-24 h-24 rounded-3xl bg-[var(--bg-elevated)] flex items-center justify-center mb-6">
+                    <span className="text-5xl">🛒</span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">No orders yet</h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-8 max-w-sm">Your orders will appear here once you start shopping. All transactions are protected by our escrow system.</p>
+                  <Button onClick={() => setCurrentPage('home')}>Browse Products</Button>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="text-5xl mb-4">{filter === 'pending' ? '⏳' : filter === 'shipped' ? '🚚' : filter === 'delivered' ? '📦' : '🔍'}</div>
+                  <h3 className="text-lg font-semibold mb-1">No {filter} orders</h3>
+                  <p className="text-sm text-[var(--text-secondary)]">Try a different filter or check back later.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map((order, i) => {
+                    const sc = statusConfig[order.status] || statusConfig.pending;
+                    return (
+                      <div key={order.id}
+                        className="liquid-glass rounded-xl p-4 sm:p-5 cursor-pointer hover:scale-[1.005] transition-all animate-fade-in-up card-press"
+                        style={{ animationDelay: `${0.03 * i}s` }}
+                        onClick={() => setSelectedOrder(order)}>
+                        <div className="flex items-start gap-4">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${sc.bg} ${sc.border} border`}>
+                            {sc.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${sc.bg} ${sc.color}`}>{sc.label}</span>
+                              <span className="text-[10px] text-[var(--text-quaternary)] font-mono">#{order.id}</span>
+                            </div>
+                            <h3 className="font-medium text-sm line-clamp-1">{order.product_title}</h3>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="text-[11px] text-[var(--text-tertiary)]">From {order.seller_name}</span>
+                              <span className="text-[11px] text-[var(--text-quaternary)]">•</span>
+                              <span className="text-[11px] text-[var(--text-tertiary)]">{CAMPUSES.find(c => c.id === order.campus)?.name || order.campus}</span>
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-sm font-bold">{formatPrice(order.total)}</div>
+                            <div className="text-[10px] text-[var(--text-quaternary)] mt-0.5">{order.created_at?.split('T')[0]}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-color)]">
+                          {order.status === 'pending' && order.seller_id === user.id && (
+                            <Button className="px-3 py-1.5 text-[11px]"
+                              onClick={(e) => { e.stopPropagation(); api.put(`/orders/${order.id}/status`, { status: 'shipped' }).then(() => refreshOrders()).catch(err => alert('Failed: ' + err.message)); }}>
+                              Mark Shipped
+                            </Button>
+                          )}
+                          {order.status === 'shipped' && order.buyer_id === user.id && (
+                            <Button variant="success" className="px-3 py-1.5 text-[11px]"
+                              onClick={(e) => { e.stopPropagation(); api.put(`/orders/${order.id}/status`, { status: 'delivered' }).then(() => { refreshOrders(); refreshWallet(); }).catch(err => alert('Failed: ' + err.message)); }}>
+                              Confirm Delivery
+                            </Button>
+                          )}
+                          {order.status === 'delivered' && order.buyer_id === user.id && (
+                            <Button variant="success" className="px-3 py-1.5 text-[11px]"
+                              onClick={(e) => { e.stopPropagation(); api.put(`/orders/${order.id}/status`, { status: 'completed' }).then(() => { refreshOrders(); refreshWallet(); }).catch(err => alert('Failed: ' + err.message)); }}>
+                              Confirm Receipt
+                            </Button>
+                          )}
+                          {order.status === 'disputed' && (
+                            <span className="text-[11px] text-red-400 font-medium">⚠️ Dispute active</span>
+                          )}
+                          <div className="flex-1" />
+                          <button onClick={(e) => { e.stopPropagation();
+                            const partnerId = order.buyer_id === user.id ? order.seller_id : order.buyer_id;
+                            const partnerName = order.buyer_id === user.id ? order.seller_name : user.name;
+                            api.get(`/auth/user/${partnerId}`).then(d => setChatPartner(d.user)).catch(() => setChatPartner({ id: partnerId, name: partnerName, phone: '' }));
+                            setCurrentPage('chat');
+                          }} className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all">
+                            💬
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }} className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {selectedOrder && (() => {
+                const sc = statusConfig[selectedOrder.status] || statusConfig.pending;
+                const steps = [
+                  { label: 'Order Placed', done: true, time: selectedOrder.created_at?.split('T')[0] },
+                  { label: 'Payment Secured in Escrow', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status) },
+                  { label: 'Item Shipped by Seller', done: ['shipped', 'delivered', 'completed', 'disputed'].includes(selectedOrder.status) },
+                  { label: 'Delivery Confirmed', done: ['delivered', 'completed'].includes(selectedOrder.status) },
+                  { label: 'Funds Released to Seller', done: selectedOrder.status === 'completed' },
+                ];
+                const currentStep = steps.findIndex(s => !s.done);
+                return (
+                  <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedOrder(null)}>
+                    <div className="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${sc.bg} ${sc.border} border`}>{sc.icon}</div>
+                          <div>
+                            <h2 className="text-lg font-semibold">Order Details</h2>
+                            <span className="text-[11px] text-[var(--text-quaternary)] font-mono">#{selectedOrder.id}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => setSelectedOrder(null)} className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-5">
+                        <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${sc.bg} ${sc.color} ${sc.border} border`}>{sc.label}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">Placed {selectedOrder.created_at?.split('T')[0]}</span>
+                      </div>
+
+                      <div className="liquid-glass rounded-xl p-4 mb-4">
+                        <h3 className="font-medium mb-1">{selectedOrder.product_title}</h3>
+                        <div className="text-xs text-[var(--text-tertiary)]">Seller: {selectedOrder.seller_name}</div>
+                        <div className="text-xs text-[var(--text-tertiary)]">Deliver to: {CAMPUSES.find(c => c.id === selectedOrder.campus)?.name}</div>
+                      </div>
+
+                      <div className="liquid-glass rounded-xl p-4 mb-4">
+                        <h4 className="text-sm font-semibold mb-3">Payment</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Item Price</span><span>{formatPrice((selectedOrder.total || 0) - (selectedOrder.delivery_fee || 0))}</span></div>
+                          <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Delivery Fee</span><span>{formatPrice(selectedOrder.delivery_fee)}</span></div>
+                          <div className="h-px bg-[var(--border-color)]" />
+                          <div className="flex justify-between font-bold"><span>Total</span><span className="text-[var(--accent)]">{formatPrice(selectedOrder.total)}</span></div>
+                        </div>
+                      </div>
+
+                      <div className="liquid-glass rounded-xl p-4 mb-5">
+                        <h4 className="text-sm font-semibold mb-3">Escrow Timeline</h4>
+                        <div className="space-y-0">
+                          {steps.map((s, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${s.done ? 'bg-[var(--accent)] text-white' : i === currentStep ? 'bg-[var(--accent)]/20 text-[var(--accent)] ring-2 ring-[var(--accent)]/30 animate-pulse' : 'bg-[var(--bg-card)] text-[var(--text-quaternary)] border border-[var(--border-color)]'}`}>
+                                  {s.done ? '✓' : (i + 1)}
+                                </div>
+                                {i < steps.length - 1 && <div className={`w-px h-6 ${s.done ? 'bg-[var(--accent)]' : 'bg-[var(--border-color)]'}`} />}
+                              </div>
+                              <div className={`text-sm pb-1 ${s.done ? 'text-[var(--text-primary)]' : i === currentStep ? 'text-[var(--accent)] font-medium' : 'text-[var(--text-quaternary)]'}`}>{s.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {selectedOrder.status === 'pending' && selectedOrder.seller_id === user.id && (
+                        <Button className="w-full justify-center" onClick={async () => {
+                          try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'shipped' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                        }}>Mark as Shipped</Button>
+                      )}
+
+                      {selectedOrder.status === 'shipped' && selectedOrder.buyer_id === user.id && (
+                        <div className="flex gap-3">
+                          <Button variant="success" className="flex-1 justify-center" onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'delivered' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>I Received This</Button>
+                          <Button variant="danger" className="flex-1 justify-center" onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>Report Issue</Button>
+                        </div>
+                      )}
+
+                      {selectedOrder.status === 'delivered' && selectedOrder.buyer_id === user.id && (
+                        <div className="flex gap-3">
+                          <Button variant="success" className="flex-1 justify-center" onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'completed' }); refreshOrders(); refreshWallet(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>Confirm Receipt</Button>
+                          <Button variant="danger" className="flex-1 justify-center" onClick={async () => {
+                            try { await api.put(`/orders/${selectedOrder.id}/status`, { status: 'disputed' }); refreshOrders(); setSelectedOrder(null); } catch (e) { alert('Failed: ' + (e.message || 'Error')); }
+                          }}>Report Issue</Button>
+                        </div>
+                      )}
+
+                      {(selectedOrder.status === 'completed' || selectedOrder.status === 'delivered') && selectedOrder.buyer_id === user.id && !reviewedOrders.includes(selectedOrder.id) && (
+                        <div className="liquid-glass rounded-xl p-5 mt-4">
+                          <h4 className="text-sm font-semibold mb-3">Rate this product</h4>
+                          <div className="flex items-center gap-1 mb-3">
+                            {[1,2,3,4,5].map(s => (
+                              <button key={s} onClick={() => setReviewRating(s)}
+                                className={`text-2xl transition-all hover:scale-125 ${s <= reviewRating ? 'text-yellow-400 scale-110' : 'text-[var(--text-quaternary)] hover:text-yellow-400/50'}`}>
+                                ★
+                              </button>
+                            ))}
+                            {reviewRating > 0 && <span className="text-xs text-[var(--text-tertiary)] ml-2">{['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][reviewRating]}</span>}
+                          </div>
+                          <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                            placeholder="Share your experience with this product..."
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] placeholder-[var(--text-quaternary)] resize-none h-20 mb-3 transition-colors" />
+                          <Button className="text-xs px-4 py-2" onClick={async () => {
+                            if (!reviewRating) { alert('Select a rating'); return; }
+                            try {
+                              await api.post('/reviews', { product_id: selectedOrder.product_id, order_id: selectedOrder.id, rating: reviewRating, comment: reviewComment });
+                              setReviewedOrders(prev => [...prev, selectedOrder.id]);
+                              setReviewRating(0);
+                              setReviewComment('');
+                              alert('Review submitted!');
+                            } catch (e) { alert(e.message); }
+                          }}>Submit Review</Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
