@@ -350,6 +350,7 @@ const normalizeProduct = (p) => ({
   originalPrice: p.originalPrice || p.original_price || null,
   reviews: p.reviewsCount || p.reviews_count || p.reviews || 0,
   image: p.image || IMG_FALLBACK,
+  images: Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? (() => { try { return JSON.parse(p.images); } catch { return []; } })() : []),
   description: p.description || '',
   delivery: typeof p.deliveryZones === 'string' ? JSON.parse(p.deliveryZones || '[]') : (typeof p.delivery_zones === 'string' ? JSON.parse(p.delivery_zones || '[]') : (p.delivery || p.deliveryZones || p.delivery_zones || [])),
   badge: p.badge || null,
@@ -1025,18 +1026,16 @@ const AppContext = createContext();
       const [showTrending, setShowTrending] = useState(false);
       const [tickerVisible, setTickerVisible] = useState(true);
 
-      const purchaseEvents = [
-        { name: 'John K.', item: 'iPhone 16 Pro Max', campus: 'Makerere' },
-        { name: 'Sarah A.', item: "Levi's 511 Jeans", campus: 'Kyambogo' },
-        { name: 'Peter O.', item: 'MacBook Pro M4', campus: 'Gulu' },
-        { name: 'Grace M.', item: 'Chicken Pilau Plate', campus: 'Makerere' },
-        { name: 'David L.', item: 'Clean Code Textbook', campus: 'Mbarara' },
-        { name: 'Faith N.', item: 'Study Desk Wooden', campus: 'Busitema' },
-        { name: 'Kevin S.', item: 'Tom Ford Perfume', campus: 'Kyambogo' },
-        { name: 'Ruth A.', item: 'Sony Headphones', campus: 'Makerere' },
-        { name: 'Brian W.', item: 'Nike Air Force 1', campus: 'Gulu' },
-        { name: 'Esther K.', item: 'Calculus Tutoring', campus: 'Mbarara' },
-      ];
+      const purchaseEvents = React.useMemo(() => {
+        if (!products || products.length === 0) return [];
+        const names = ['John K.', 'Sarah A.', 'Peter O.', 'Grace M.', 'David L.', 'Faith N.', 'Kevin S.', 'Ruth A.', 'Brian W.', 'Esther K.'];
+        const campuses = ['Makerere', 'Kyambogo', 'Mbarara', 'Gulu', 'Busitema'];
+        return products.slice(0, 10).map((p, i) => ({
+          name: names[i % names.length],
+          item: p.title,
+          campus: campuses[i % campuses.length],
+        }));
+      }, [products]);
 
       const trendingSearches = ['iPhone', 'Textbooks', 'Pizza', 'Laptop', 'Sneakers', 'Furniture', 'Dresses', 'Perfume'];
 
@@ -1090,13 +1089,13 @@ const AppContext = createContext();
       // Get category image from first product in that category
       const getCategoryImage = (catId) => {
         if (!products || products.length === 0) return '';
-        const p = products.find(p => p.category === catId);
-        return p ? p.image : '';
+        const p = products.find(p => p.category && p.category.toLowerCase() === catId.toLowerCase());
+        return p ? resolveImageUrl(p.image) : '';
       };
 
-      // Get discounted products for Today's Deals
+      // Get discounted products for Today's Deals (fall back to latest products if no discounts)
       const dealProducts = React.useMemo(() => {
-        return (products || [])
+        const discounted = (products || [])
           .filter(p => p.originalPrice && p.price < p.originalPrice)
           .sort((a, b) => {
             const aPct = (a.originalPrice - a.price) / a.originalPrice;
@@ -1104,19 +1103,16 @@ const AppContext = createContext();
             return bPct - aPct;
           })
           .slice(0, 8);
+        if (discounted.length > 0) return discounted;
+        return (products || []).slice(0, 8);
       }, [products]);
 
-      // Generate random "viewing" counts for products (stable per session)
-      const viewingCounts = React.useMemo(() => {
-        const map = {};
-        (products || []).forEach(p => {
-          map[p.id] = Math.floor(Math.random() * 25) + 3;
-        });
-        return map;
+      // Get featured products for landing (fall back to highest rated if no badges)
+      const featuredProducts = React.useMemo(() => {
+        const withBadges = (products || []).filter(p => p.badge).slice(0, 8);
+        if (withBadges.length > 0) return withBadges;
+        return [...(products || [])].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 8);
       }, [products]);
-
-      // Get featured products for landing
-      const featuredProducts = (products || []).filter(p => p.badge).slice(0, 8);
       const formatPrice = (p) => `UGX ${p.toLocaleString()}`;
 
       return (
@@ -1181,7 +1177,7 @@ const AppContext = createContext();
             </div>
             <div className="mt-8 flex gap-6 overflow-x-auto pb-2 hide-scrollbar animate-fade-in-up delay-375 max-w-2xl mx-auto">
               {CATEGORIES.filter(c => c.id !== 'all').map((cat, i) => {
-                const count = (products||[]).filter(p => p.category === cat.id).length;
+                const count = (products||[]).filter(p => p.category && p.category.toLowerCase() === cat.id.toLowerCase()).length;
                 const catImg = getCategoryImage(cat.id);
                 return (
                   <div key={cat.id} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
@@ -1223,10 +1219,10 @@ const AppContext = createContext();
             <div className="max-w-7xl mx-auto">
             <div className="liquid-glass rounded-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center animate-fade-in-up delay-500">
               {[
-                { value: '15,000+', label: 'Active Users' },
-                { value: `${(products||[]).length}+`, label: 'Products Listed' },
-                { value: 'UGX 3.2B', label: 'Total Sales' },
                 { value: `${(shops||[]).length}+`, label: 'Verified Sellers' },
+                { value: `${(products||[]).length}+`, label: 'Products Listed' },
+                { value: '5', label: 'Campuses' },
+                { value: '10%', label: 'Per Sale' },
               ].map((stat, i) => (
                 <div key={i}>
                   <div className="text-2xl md:text-3xl font-bold text-[var(--text-primary)]">{stat.value}</div>
@@ -1262,10 +1258,6 @@ const AppContext = createContext();
                     onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
                     <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-gradient-to-r from-red-500 to-[var(--accent)] text-white text-[10px] font-bold shadow-lg">
                       -{discountPct}%
-                    </div>
-                    <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      {viewingCounts[product.id] || 12} watching
                     </div>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
                                             <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
@@ -1318,10 +1310,6 @@ const AppContext = createContext();
                       {product.badge && (
                         <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
                       )}
-                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[var(--bg-overlay)] text-white text-[9px] font-bold flex items-center gap-1 backdrop-blur-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-hover)] animate-pulse" />
-                        {viewingCounts[product.id] || 8} watching
-                      </div>
                       {(product.salesCount || 0) > 5 && (
                         <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-orange-500/80 text-[var(--text-primary)] text-[10px] font-bold">🔥 Popular</div>
                       )}
@@ -1434,7 +1422,7 @@ const AppContext = createContext();
                 <div className="flex items-center gap-3">
                   <div className="hidden sm:flex items-center gap-1">
                     <span className="text-lg">🎓</span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]">Join 15,000+ students on KampusKart</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Join {(products||[]).length}+ students on KampusKart</span>
                   </div>
                   <span className="text-xs text-[var(--text-tertiary)]">Free to browse · No account needed</span>
                 </div>

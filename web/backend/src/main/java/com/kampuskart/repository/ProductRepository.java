@@ -13,7 +13,7 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = "SELECT * FROM products p WHERE p.is_active = true " +
-           "AND (:category IS NULL OR p.category = :category) " +
+           "AND (:category IS NULL OR LOWER(p.category) = LOWER(:category)) " +
            "AND (:campus IS NULL OR p.campus = :campus) " +
            "AND (:search IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))) " +
