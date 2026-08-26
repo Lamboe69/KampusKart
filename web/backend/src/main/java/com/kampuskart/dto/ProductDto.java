@@ -15,6 +15,8 @@ public class ProductDto {
     private String campus;
     private String condition;
     private String image;
+    private String images;
+    private String returnPolicy;
     private String sellerName;
     private String sellerId;
     private String sellerType;
@@ -37,6 +39,8 @@ public class ProductDto {
         d.campus = p.getCampus();
         d.condition = p.getCondition();
         d.image = p.getImage();
+        d.images = p.getImages();
+        d.returnPolicy = p.getReturnPolicy();
         d.sellerName = p.getSellerName();
         d.sellerId = p.getSellerId();
         d.sellerType = p.getSellerType();
@@ -59,6 +63,8 @@ public class ProductDto {
     public String getCampus() { return campus; }
     public String getCondition() { return condition; }
     public String getImage() { return image; }
+    public String getImages() { return images; }
+    public String getReturnPolicy() { return returnPolicy; }
     public String getSellerName() { return sellerName; }
     public String getSellerId() { return sellerId; }
     public String getSellerType() { return sellerType; }

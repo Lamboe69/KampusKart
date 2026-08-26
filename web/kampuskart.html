@@ -327,16 +327,18 @@ let MOCK_ORDERS = [];
 let MOCK_WALLET = { balance: 0, pending: 0, totalEarned: 0 };
 
 const IMG_FALLBACK = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22400%22 viewBox=%220 0 400 400%22%3E%3Crect fill=%22%23222%22 width=%22400%22 height=%22400%22/%3E%3Ctext x=%22200%22 y=%22200%22 text-anchor=%22middle%22 dominant-baseline=%22central%22 fill=%22%23666%22 font-size=%2260%22%3E📦%3C/text%3E%3C/svg%3E';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin;
+const resolveImageUrl = (url) => { if (!url) return IMG_FALLBACK; if (url.startsWith('http')) return url; return API_BASE + url; };
     const onImgError = (e) => { e.target.src = IMG_FALLBACK; e.target.onerror = null; };
     const getImg = (p, i = 0) => {
       if (!p || !p.image) return IMG_FALLBACK;
-      try { const a = JSON.parse(p.image); if (Array.isArray(a)) return a[i] || a[0] || IMG_FALLBACK; } catch (e) {}
-      return p.image;
+      try { const a = JSON.parse(p.image); if (Array.isArray(a)) return resolveImageUrl(a[i] || a[0]); } catch (e) {}
+      return resolveImageUrl(p.image);
     };
     const getImgs = (p) => {
       if (!p || !p.image) return [];
-      try { const a = JSON.parse(p.image); if (Array.isArray(a)) return a; } catch (e) {}
-      return [p.image];
+      try { const a = JSON.parse(p.image); if (Array.isArray(a)) return a.map(resolveImageUrl); } catch (e) {}
+      return [resolveImageUrl(p.image)];
     };
 
 const normalizeProduct = (p) => ({
@@ -895,7 +897,7 @@ const AppContext = createContext();
                     return (
                       <div key={p.id} className="flex gap-3 p-3 rounded-xl bg-[var(--bg-card)]">
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-[var(--bg-elevated)] flex-shrink-0">
-                          <img src={p.image} alt="" className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                          <img src={resolveImageUrl(p.image)} alt="" className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{p.title}</p>
@@ -1266,7 +1268,7 @@ const AppContext = createContext();
                       {viewingCounts[product.id] || 12} watching
                     </div>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
-                                            <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                                            <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-[var(--bg-nav)] transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
 
@@ -1312,7 +1314,7 @@ const AppContext = createContext();
                   <div className="liquid-glass rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] card-press"
                     onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
-                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
                       {product.badge && (
                         <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
                       )}
@@ -1593,7 +1595,7 @@ const AppContext = createContext();
                   <div className="liquid-glass rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] card-press"
                     onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
-                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
                       {product.badge && (
                         <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase tracking-wider">
                           {product.badge}
@@ -1680,7 +1682,7 @@ const AppContext = createContext();
       if (!selectedProduct) return null;
       const product = selectedProduct;
 
-      const galleryImages = (Array.isArray(product.images) && product.images.length > 0) ? product.images : (product.image ? [product.image] : []);
+      const galleryImages = (Array.isArray(product.images) && product.images.length > 0) ? product.images.map(resolveImageUrl) : (product.image ? [resolveImageUrl(product.image)] : []);
       const prevImg = () => setGalleryIndex(i => (i - 1 + galleryImages.length) % galleryImages.length);
       const nextImg = () => setGalleryIndex(i => (i + 1) % galleryImages.length);
 
@@ -1935,7 +1937,7 @@ const AppContext = createContext();
                     <div key={p.id} className="liquid-glass rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform card-press group"
                       onClick={() => { setSelectedProduct(p); window.scrollTo(0, 0); }}>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
-                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
                         {p.badge && (
                           <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{p.badge}</div>
                         )}
@@ -2134,7 +2136,7 @@ const AppContext = createContext();
                   onClick={() => { setSelectedShop(shop); setCurrentPage('shop-profile'); }}>
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-[var(--bg-elevated)] flex-shrink-0">
-                      <img src={shop.image} alt={shop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                      <img src={resolveImageUrl(shop.image)} alt={shop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -2200,7 +2202,7 @@ const AppContext = createContext();
             <div className="liquid-glass rounded-2xl p-6 md:p-8 mb-8">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[var(--bg-elevated)] flex-shrink-0">
-                  <img src={selectedShop.image} alt={selectedShop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
+                  <img src={resolveImageUrl(selectedShop.image)} alt={selectedShop.name} className="w-full h-full object-cover" loading="lazy" onError={onImgError} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -2236,7 +2238,7 @@ const AppContext = createContext();
                   style={{ animationDelay: `${0.03 * i}s` }}
                   onClick={() => { setSelectedProduct(product); setCurrentPage('product'); }}>
                     <div className="relative aspect-square overflow-hidden bg-[var(--bg-elevated)]">
-                      <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
+                      <img src={resolveImageUrl(product.image)} alt={product.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" onError={onImgError} />
                     {product.badge && (
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-campus/90 text-black text-[10px] font-bold uppercase">{product.badge}</div>
                     )}
@@ -2508,7 +2510,7 @@ const AppContext = createContext();
                     {formData.images.map((url, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-elevated)]">
-                          {url ? <img src={url} alt="" className="w-full h-full object-cover" onError={onImgError} /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-quaternary)] text-xs">No img</div>}
+                          {url ? <img src={resolveImageUrl(url)} alt="" className="w-full h-full object-cover" onError={onImgError} /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-quaternary)] text-xs">No img</div>}
                         </div>
                         <input type="url" value={url} onChange={(e) => { const imgs = [...formData.images]; imgs[i] = e.target.value; setFormData({...formData, images: imgs}); }}
                           className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-hover)]"
@@ -3336,7 +3338,7 @@ const AppContext = createContext();
                                 : 'bg-[var(--bg-card)] text-[var(--text-primary)] rounded-[18px] rounded-bl-[4px]'
                             }`}>
                               {m.image && (
-                                <img src={m.image} alt="" className="max-w-full rounded-xl mb-1.5 cursor-pointer hover:opacity-90 transition-opacity"
+                                <img src={resolveImageUrl(m.image)} alt="" className="max-w-full rounded-xl mb-1.5 cursor-pointer hover:opacity-90 transition-opacity"
                                   onClick={(e) => { e.stopPropagation(); setPreviewImage(m.image); }} onError={onImgError} />
                               )}
                               {m.message && <div className="whitespace-pre-wrap break-words">{m.message}</div>}
