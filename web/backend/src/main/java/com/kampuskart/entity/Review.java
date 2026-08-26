@@ -13,8 +13,11 @@ public class Review {
     @Column(name = "product_id")
     private Long productId;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_id", nullable = false, length = 36)
+    private String userId;
+
+    @Column(name = "order_id", length = 36)
+    private String orderId;
 
     @Column(name = "user_name")
     private String userName;
@@ -32,8 +35,10 @@ public class Review {
     public void setId(Long id) { this.id = id; }
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    public String getOrderId() { return orderId; }
+    public void setOrderId(String orderId) { this.orderId = orderId; }
     public String getUserName() { return userName; }
     public void setUserName(String userName) { this.userName = userName; }
     public Integer getRating() { return rating; }

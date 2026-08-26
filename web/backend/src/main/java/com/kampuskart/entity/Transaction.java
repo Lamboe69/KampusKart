@@ -11,8 +11,8 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_id", nullable = false, length = 36)
+    private String userId;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -24,12 +24,15 @@ public class Transaction {
 
     private String description;
 
+    @Column(name = "order_id", length = 36)
+    private String orderId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Transaction() {}
 
-    public Transaction(Long userId, BigDecimal amount, String type, String description) {
+    public Transaction(String userId, BigDecimal amount, String type, String description) {
         this.userId = userId;
         this.amount = amount;
         this.type = type;
@@ -38,8 +41,8 @@ public class Transaction {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public String getType() { return type; }
@@ -48,6 +51,8 @@ public class Transaction {
     public void setStatus(String status) { this.status = status; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getOrderId() { return orderId; }
+    public void setOrderId(String orderId) { this.orderId = orderId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

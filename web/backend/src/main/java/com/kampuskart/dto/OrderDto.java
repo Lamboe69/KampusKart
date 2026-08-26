@@ -6,8 +6,8 @@ import java.time.format.DateTimeFormatter;
 
 public class OrderDto {
     private Long id;
-    private Long buyerId;
-    private Long sellerId;
+    private String buyerId;
+    private String sellerId;
     private Long productId;
     private Integer quantity;
     private BigDecimal total;
@@ -21,6 +21,7 @@ public class OrderDto {
     private String productTitle;
     private String productImage;
     private String createdAt;
+    private String updatedAt;
 
     public static OrderDto from(Order o) {
         OrderDto d = new OrderDto();
@@ -40,12 +41,13 @@ public class OrderDto {
         d.productTitle = o.getProductTitle();
         d.productImage = o.getProductImage();
         d.createdAt = o.getCreatedAt() != null ? o.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        d.updatedAt = o.getUpdatedAt() != null ? o.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
         return d;
     }
 
     public Long getId() { return id; }
-    public Long getBuyerId() { return buyerId; }
-    public Long getSellerId() { return sellerId; }
+    public String getBuyerId() { return buyerId; }
+    public String getSellerId() { return sellerId; }
     public Long getProductId() { return productId; }
     public Integer getQuantity() { return quantity; }
     public BigDecimal getTotal() { return total; }
@@ -59,4 +61,5 @@ public class OrderDto {
     public String getProductTitle() { return productTitle; }
     public String getProductImage() { return productImage; }
     public String getCreatedAt() { return createdAt; }
+    public String getUpdatedAt() { return updatedAt; }
 }

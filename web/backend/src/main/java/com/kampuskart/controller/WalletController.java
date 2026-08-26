@@ -24,15 +24,18 @@ public class WalletController {
 
     @GetMapping("/transactions")
     public ResponseEntity<?> getTransactions(Authentication auth) {
-        return ResponseEntity.ok(walletService.getTransactions(auth));
+        return ResponseEntity.ok(Map.of("transactions", walletService.getTransactions(auth)));
     }
 
     @PostMapping("/withdraw")
     public ResponseEntity<?> withdraw(Authentication auth, @RequestBody Map<String, Object> body) {
         try {
-            BigDecimal amount = BigDecimal.valueOf(((Number) body.get("amount")).doubleValue());
-            walletService.withdraw(auth, amount);
-            return ResponseEntity.ok(Map.of("message", "Withdrawal successful"));
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
+            String method = body.get("method") != null ? body.get("method").toString() : "mobile_money";
+            String accountNumber = body.get("account_number") != null ? body.get("account_number").toString() :
+                                   body.get("accountNumber") != null ? body.get("accountNumber").toString() : null;
+            walletService.withdraw(auth, amount, method, accountNumber);
+            return ResponseEntity.ok(Map.of("message", "Withdrawal initiated"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -41,7 +44,7 @@ public class WalletController {
     @PostMapping("/topup")
     public ResponseEntity<?> topup(Authentication auth, @RequestBody Map<String, Object> body) {
         try {
-            BigDecimal amount = BigDecimal.valueOf(((Number) body.get("amount")).doubleValue());
+            BigDecimal amount = new BigDecimal(body.get("amount").toString());
             walletService.topup(auth, amount);
             return ResponseEntity.ok(Map.of("message", "Top up successful"));
         } catch (RuntimeException e) {

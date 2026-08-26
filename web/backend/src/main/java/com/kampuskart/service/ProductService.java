@@ -20,18 +20,22 @@ public class ProductService {
 
     public List<ProductDto> list(String category, String campus, String search,
                                   BigDecimal minPrice, BigDecimal maxPrice,
-                                  Long sellerId, String sort) {
+                                  String sellerId, String sort) {
         List<Product> products = productRepo.findFiltered(
             category, campus, search, minPrice, maxPrice, sellerId);
 
-        if ("price_asc".equals(sort))
+        if ("price_asc".equals(sort) || "price-low".equals(sort))
             products.sort((a, b) -> a.getPrice().compareTo(b.getPrice()));
-        else if ("price_desc".equals(sort))
+        else if ("price_desc".equals(sort) || "price-high".equals(sort))
             products.sort((a, b) -> b.getPrice().compareTo(a.getPrice()));
+        else if ("rating".equals(sort))
+            products.sort((a, b) -> b.getRating().compareTo(a.getRating()));
         else if ("newest".equals(sort))
-            products.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
-        else if ("oldest".equals(sort))
-            products.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+            products.sort((a, b) -> {
+                if (a.getCreatedAt() == null) return 1;
+                if (b.getCreatedAt() == null) return -1;
+                return b.getCreatedAt().compareTo(a.getCreatedAt());
+            });
 
         return products.stream().map(ProductDto::from).collect(Collectors.toList());
     }
@@ -45,6 +49,10 @@ public class ProductService {
     public ProductDto create(Product p) {
         p.setCreatedAt(LocalDateTime.now());
         p.setUpdatedAt(LocalDateTime.now());
+        if (p.getIsActive() == null) p.setIsActive(true);
+        if (p.getRating() == null) p.setRating(BigDecimal.ZERO);
+        if (p.getReviewsCount() == null) p.setReviewsCount(0);
+        if (p.getSalesCount() == null) p.setSalesCount(0);
         return ProductDto.from(productRepo.save(p));
     }
 
@@ -57,12 +65,16 @@ public class ProductService {
         if (updated.getOriginalPrice() != null) p.setOriginalPrice(updated.getOriginalPrice());
         if (updated.getDeliveryFee() != null) p.setDeliveryFee(updated.getDeliveryFee());
         if (updated.getDeliveryZones() != null) p.setDeliveryZones(updated.getDeliveryZones());
+        if (updated.getDeliveryFees() != null) p.setDeliveryFees(updated.getDeliveryFees());
         if (updated.getCategory() != null) p.setCategory(updated.getCategory());
         if (updated.getCampus() != null) p.setCampus(updated.getCampus());
         if (updated.getCondition() != null) p.setCondition(updated.getCondition());
         if (updated.getImage() != null) p.setImage(updated.getImage());
+        if (updated.getImages() != null) p.setImages(updated.getImages());
         if (updated.getSellerName() != null) p.setSellerName(updated.getSellerName());
         if (updated.getSellerType() != null) p.setSellerType(updated.getSellerType());
+        if (updated.getBadge() != null) p.setBadge(updated.getBadge());
+        if (updated.getReturnPolicy() != null) p.setReturnPolicy(updated.getReturnPolicy());
         p.setUpdatedAt(LocalDateTime.now());
         return ProductDto.from(productRepo.save(p));
     }

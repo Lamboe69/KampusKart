@@ -26,9 +26,9 @@ public class ProductController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(required = false) Long sellerId,
+            @RequestParam(required = false) String seller_id,
             @RequestParam(required = false) String sort) {
-        List<?> products = productService.list(category, campus, search, minPrice, maxPrice, sellerId, sort);
+        List<?> products = productService.list(category, campus, search, minPrice, maxPrice, seller_id, sort);
         Map<String, Object> result = new HashMap<>();
         result.put("products", products);
         result.put("count", products.size());

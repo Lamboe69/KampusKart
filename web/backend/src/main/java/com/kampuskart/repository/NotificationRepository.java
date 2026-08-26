@@ -10,10 +10,10 @@ import java.util.List;
 
 @Repository
 public interface NotificationRepository extends CrudRepository<Notification, Long> {
-    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
-    long countByUserIdAndIsReadFalse(Long userId);
+    List<Notification> findByUserIdOrderByCreatedAtDesc(String userId);
+    long countByUserIdAndIsReadFalse(String userId);
 
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId")
-    void markAllReadByUserId(Long userId);
+    void markAllReadByUserId(String userId);
 }

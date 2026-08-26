@@ -11,11 +11,11 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "buyer_id", nullable = false)
-    private Long buyerId;
+    @Column(name = "buyer_id", nullable = false, length = 36)
+    private String buyerId;
 
-    @Column(name = "seller_id", nullable = false)
-    private Long sellerId;
+    @Column(name = "seller_id", nullable = false, length = 36)
+    private String sellerId;
 
     @Column(name = "product_id", nullable = false)
     private Long productId;
@@ -61,10 +61,10 @@ public class Order {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getBuyerId() { return buyerId; }
-    public void setBuyerId(Long buyerId) { this.buyerId = buyerId; }
-    public Long getSellerId() { return sellerId; }
-    public void setSellerId(Long sellerId) { this.sellerId = sellerId; }
+    public String getBuyerId() { return buyerId; }
+    public void setBuyerId(String buyerId) { this.buyerId = buyerId; }
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
     public Integer getQuantity() { return quantity; }

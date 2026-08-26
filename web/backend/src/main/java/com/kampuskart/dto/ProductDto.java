@@ -16,6 +16,7 @@ public class ProductDto {
     private String condition;
     private String image;
     private String sellerName;
+    private String sellerId;
     private String sellerType;
     private BigDecimal rating;
     private Integer reviewsCount;
@@ -37,6 +38,7 @@ public class ProductDto {
         d.condition = p.getCondition();
         d.image = p.getImage();
         d.sellerName = p.getSellerName();
+        d.sellerId = p.getSellerId();
         d.sellerType = p.getSellerType();
         d.rating = p.getRating();
         d.reviewsCount = p.getReviewsCount();
@@ -58,6 +60,7 @@ public class ProductDto {
     public String getCondition() { return condition; }
     public String getImage() { return image; }
     public String getSellerName() { return sellerName; }
+    public String getSellerId() { return sellerId; }
     public String getSellerType() { return sellerType; }
     public BigDecimal getRating() { return rating; }
     public Integer getReviewsCount() { return reviewsCount; }

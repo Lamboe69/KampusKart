@@ -3,13 +3,14 @@ package com.kampuskart.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(length = 36)
+    private String id;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -39,7 +40,7 @@ public class User {
     @Column(precision = 12, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
-    @Column(precision = 12, scale = 2)
+    @Column(name = "pending_balance", precision = 12, scale = 2)
     private BigDecimal pendingBalance = BigDecimal.ZERO;
 
     @Column(name = "total_earned", precision = 12, scale = 2)
@@ -68,17 +69,20 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    public User() {}
+    public User() {
+        this.id = UUID.randomUUID().toString();
+    }
 
     public User(String email, String password, String name, String role) {
+        this.id = UUID.randomUUID().toString();
         this.email = email;
         this.password = password;
         this.name = name;
         this.role = role;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public String getPassword() { return password; }

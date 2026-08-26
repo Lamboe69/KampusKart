@@ -10,8 +10,8 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_id", nullable = false, length = 36)
+    private String userId;
 
     @Column(nullable = false)
     private String title;
@@ -29,7 +29,7 @@ public class Notification {
 
     public Notification() {}
 
-    public Notification(Long userId, String title, String message, String type) {
+    public Notification(String userId, String title, String message, String type) {
         this.userId = userId;
         this.title = title;
         this.message = message;
@@ -38,8 +38,8 @@ public class Notification {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getMessage() { return message; }

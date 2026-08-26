@@ -4,7 +4,7 @@ import com.kampuskart.entity.User;
 import java.math.BigDecimal;
 
 public class UserDto {
-    private Long id;
+    private String id;
     private String email;
     private String name;
     private String role;
@@ -46,7 +46,7 @@ public class UserDto {
         return d;
     }
 
-    public Long getId() { return id; }
+    public String getId() { return id; }
     public String getEmail() { return email; }
     public String getName() { return name; }
     public String getRole() { return role; }

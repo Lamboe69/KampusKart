@@ -23,13 +23,17 @@ public class NotificationController {
 
     @PutMapping("/{id}/read")
     public ResponseEntity<?> markRead(@PathVariable Long id) {
-        notificationService.markRead(id);
-        return ResponseEntity.ok(Map.of("message", "Marked as read"));
+        try {
+            notificationService.markRead(id);
+            return ResponseEntity.ok(Map.of("message", "Notification marked as read"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PutMapping("/read-all")
     public ResponseEntity<?> markAllRead(Authentication auth) {
         notificationService.markAllRead(auth);
-        return ResponseEntity.ok(Map.of("message", "All marked as read"));
+        return ResponseEntity.ok(Map.of("message", "All notifications marked as read"));
     }
 }

@@ -46,8 +46,18 @@ public class AdminService {
         stats.put("totalOrders", orderRepo.count());
         stats.put("pendingOrders", orderRepo.countByStatus("pending"));
         stats.put("completedOrders", orderRepo.countByStatus("completed"));
-        stats.put("totalRevenue", BigDecimal.ZERO);
-        stats.put("platformFees", BigDecimal.ZERO);
+        BigDecimal totalRevenue = orderRepo.getTotalRevenue();
+        stats.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+        stats.put("platformFees", totalRevenue != null ? totalRevenue.multiply(BigDecimal.valueOf(0.10)) : BigDecimal.ZERO);
+        long pendingVerifications = verificationRepo.findAll().stream()
+            .filter(v -> "pending".equals(v.getStatus())).count();
+        stats.put("pendingVerifications", pendingVerifications);
+        long openDisputes = disputeRepo.findAll().stream()
+            .filter(d -> "open".equals(d.getStatus())).count();
+        stats.put("openDisputes", openDisputes);
+        long pendingPayouts = payoutRepo.findAll().stream()
+            .filter(p -> "pending".equals(p.getStatus())).count();
+        stats.put("pendingPayouts", pendingPayouts);
         return stats;
     }
 
@@ -135,10 +145,10 @@ public class AdminService {
     }
 
     @Transactional
-    public void suspendListing(Long id, boolean suspend) {
+    public void suspendListing(Long id) {
         Product p = productRepo.findById(id)
             .orElseThrow(() -> new RuntimeException("Product not found"));
-        p.setIsActive(!suspend);
+        p.setIsActive(!p.getIsActive());
         p.setUpdatedAt(LocalDateTime.now());
         productRepo.save(p);
     }

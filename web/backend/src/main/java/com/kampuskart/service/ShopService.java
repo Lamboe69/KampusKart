@@ -3,12 +3,11 @@ package com.kampuskart.service;
 import com.kampuskart.dto.ShopDto;
 import com.kampuskart.dto.ProductDto;
 import com.kampuskart.entity.User;
+import com.kampuskart.repository.OrderRepository;
 import com.kampuskart.repository.ProductRepository;
 import com.kampuskart.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -16,54 +15,55 @@ import java.util.stream.Collectors;
 public class ShopService {
     private final UserRepository userRepo;
     private final ProductRepository productRepo;
+    private final OrderRepository orderRepo;
 
-    public ShopService(UserRepository userRepo, ProductRepository productRepo) {
+    public ShopService(UserRepository userRepo, ProductRepository productRepo, OrderRepository orderRepo) {
         this.userRepo = userRepo;
         this.productRepo = productRepo;
+        this.orderRepo = orderRepo;
     }
 
-    public List<ShopDto> list(String campus) {
-        List<User> sellers = campus != null && !"all".equals(campus)
-            ? userRepo.findByRoleAndIsActiveTrueAndCampus("seller", campus)
-            : userRepo.findByRoleAndIsActiveTrue("seller");
-        List<User> shops = campus != null && !"all".equals(campus)
-            ? userRepo.findByRoleAndIsActiveTrueAndCampus("shop", campus)
-            : userRepo.findByRoleAndIsActiveTrue("shop");
+    public List<ShopDto> list(String campus, String type, String search) {
+        List<User> sellers = new ArrayList<>();
+        if (type == null || "seller".equals(type)) {
+            if (campus != null && !"all".equals(campus)) {
+                sellers.addAll(userRepo.findByRoleAndIsActiveTrueAndCampus("seller", campus));
+            } else {
+                sellers.addAll(userRepo.findByRoleAndIsActiveTrue("seller"));
+            }
+        }
+        if (type == null || "shop".equals(type)) {
+            if (campus != null && !"all".equals(campus)) {
+                sellers.addAll(userRepo.findByRoleAndIsActiveTrueAndCampus("shop", campus));
+            } else {
+                sellers.addAll(userRepo.findByRoleAndIsActiveTrue("shop"));
+            }
+        }
 
-        List<User> all = new ArrayList<>();
-        all.addAll(sellers);
-        all.addAll(shops);
+        if (search != null && !search.isEmpty()) {
+            String s = search.toLowerCase();
+            sellers = sellers.stream()
+                .filter(u -> u.getName().toLowerCase().contains(s) ||
+                            (u.getDescription() != null && u.getDescription().toLowerCase().contains(s)))
+                .collect(Collectors.toList());
+        }
 
-        return all.stream().map(this::toShopDto).collect(Collectors.toList());
+        return sellers.stream().map(u -> {
+            long productCount = productRepo.countBySellerId(u.getId());
+            long salesCount = orderRepo.countCompletedBySellerId(u.getId());
+            return ShopDto.from(u, (int) productCount, (int) salesCount);
+        }).collect(Collectors.toList());
     }
 
-    public Map<String, Object> getById(Long id) {
+    public Map<String, Object> getById(String id) {
         User seller = userRepo.findById(id)
             .orElseThrow(() -> new RuntimeException("Shop not found"));
+        long productCount = productRepo.countBySellerId(id);
+        long salesCount = orderRepo.countCompletedBySellerId(id);
         Map<String, Object> result = new HashMap<>();
-        result.put("shop", toShopDto(seller));
-        result.put("products", productRepo.findByIsActiveTrueAndSellerName(seller.getName())
+        result.put("shop", ShopDto.from(seller, (int) productCount, (int) salesCount));
+        result.put("products", productRepo.findBySellerId(id)
             .stream().map(ProductDto::from).collect(Collectors.toList()));
         return result;
-    }
-
-    private ShopDto toShopDto(User u) {
-        ShopDto d = new ShopDto();
-        d.setId(u.getId());
-        d.setName(u.getName());
-        d.setEmail(u.getEmail());
-        d.setDescription(u.getDescription());
-        d.setCampus(u.getCampus());
-        d.setImage(u.getImage());
-        d.setPhone(u.getPhone());
-        d.setSellerType(u.getSellerType() != null ? u.getSellerType() : u.getRole());
-        d.setRating(u.getRating() != null ? u.getRating() : BigDecimal.ZERO);
-        d.setReviewsCount(u.getReviewsCount() != null ? u.getReviewsCount() : 0);
-        d.setProductsCount(u.getProductsCount() != null ? u.getProductsCount() : 0);
-        d.setSalesCount(u.getSalesCount() != null ? u.getSalesCount() : 0);
-        d.setVerified(u.getVerified() != null && u.getVerified());
-        d.setSince(u.getCreatedAt() != null
-            ? u.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy")) : "2024");
-        return d;
     }
 }

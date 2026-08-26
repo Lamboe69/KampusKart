@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class NotificationService {
@@ -21,9 +20,9 @@ public class NotificationService {
         this.notificationRepo = notificationRepo;
     }
 
-    public List<Map<String, Object>> list(Authentication auth) {
+    public Map<String, Object> list(Authentication auth) {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-        return notificationRepo.findByUserIdOrderByCreatedAtDesc(principal.getId())
+        List<Map<String, Object>> notifications = notificationRepo.findByUserIdOrderByCreatedAtDesc(principal.getId())
             .stream().map(n -> {
                 Map<String, Object> m = new HashMap<>();
                 m.put("id", n.getId());
@@ -31,9 +30,14 @@ public class NotificationService {
                 m.put("message", n.getMessage());
                 m.put("type", n.getType());
                 m.put("isRead", n.getIsRead());
-                m.put("createdAt", n.getCreatedAt().toString());
+                m.put("createdAt", n.getCreatedAt() != null ? n.getCreatedAt().toString() : null);
                 return m;
             }).collect(Collectors.toList());
+        long unreadCount = notificationRepo.countByUserIdAndIsReadFalse(principal.getId());
+        Map<String, Object> result = new HashMap<>();
+        result.put("notifications", notifications);
+        result.put("unreadCount", unreadCount);
+        return result;
     }
 
     public void markRead(Long id) {

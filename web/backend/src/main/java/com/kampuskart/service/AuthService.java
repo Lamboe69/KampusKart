@@ -1,8 +1,8 @@
 package com.kampuskart.service;
 
 import com.kampuskart.dto.*;
-import com.kampuskart.entity.*;
-import com.kampuskart.repository.*;
+import com.kampuskart.entity.User;
+import com.kampuskart.repository.UserRepository;
 import com.kampuskart.security.JwtUtil;
 import com.kampuskart.security.UserPrincipal;
 import org.springframework.security.core.Authentication;
@@ -10,10 +10,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 public class AuthService {
@@ -35,9 +33,13 @@ public class AuthService {
         user.setEmail(req.getEmail());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setName(req.getName());
-        user.setRole(req.getRole() != null ? req.getRole() : "customer");
+        user.setRole(req.resolveRole());
+        user.setSellerType("shop".equals(user.getRole()) ? (req.getSellerType() != null ? req.getSellerType() : "shop") : req.getSellerType());
         user.setCampus(req.getCampus());
         user.setPhone(req.getPhone());
+        user.setImage("https://api.dicebear.com/7.x/avataaars/svg?seed=" + req.getName().replace(" ", "+"));
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
         user = userRepo.save(user);
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
@@ -61,6 +63,14 @@ public class AuthService {
         return UserDto.from(user);
     }
 
+    public UserDto getUserById(String id) {
+        User user = userRepo.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        UserDto dto = new UserDto();
+        dto = UserDto.from(user);
+        return dto;
+    }
+
     @Transactional
     public UserDto updateProfile(Authentication auth, Map<String, Object> updates) {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
@@ -76,5 +86,33 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         user = userRepo.save(user);
         return UserDto.from(user);
+    }
+
+    @Transactional
+    public Map<String, String> changePassword(Authentication auth, String currentPassword, String newPassword) {
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        User user = userRepo.findById(principal.getId())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepo.save(user);
+        return Map.of("message", "Password changed successfully");
+    }
+
+    @Transactional
+    public Map<String, String> deleteAccount(Authentication auth, String password) {
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        User user = userRepo.findById(principal.getId())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Incorrect password");
+        }
+        user.setIsActive(false);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepo.save(user);
+        return Map.of("message", "Account deleted successfully");
     }
 }

@@ -16,12 +16,16 @@ public class ShopController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@RequestParam(required = false) String campus) {
-        return ResponseEntity.ok(Map.of("shops", shopService.list(campus)));
+    public ResponseEntity<?> list(
+            @RequestParam(required = false) String campus,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String search) {
+        var shops = shopService.list(campus, type, search);
+        return ResponseEntity.ok(Map.of("shops", shops, "count", shops.size()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable Long id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         try {
             return ResponseEntity.ok(shopService.getById(id));
         } catch (RuntimeException e) {

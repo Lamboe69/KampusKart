@@ -47,13 +47,13 @@ public class WalletService {
                 m.put("type", t.getType());
                 m.put("status", t.getStatus());
                 m.put("description", t.getDescription());
-                m.put("createdAt", t.getCreatedAt().toString());
+                m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
                 return m;
             }).collect(Collectors.toList());
     }
 
     @Transactional
-    public void withdraw(Authentication auth, BigDecimal amount) {
+    public void withdraw(Authentication auth, BigDecimal amount, String method, String accountNumber) {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
         User user = userRepo.findById(principal.getId())
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -64,17 +64,22 @@ public class WalletService {
             throw new RuntimeException("Insufficient balance");
         }
         user.setBalance(user.getBalance().subtract(amount));
+        user.setUpdatedAt(LocalDateTime.now());
         userRepo.save(user);
         transactionRepo.save(new Transaction(user.getId(), amount.negate(), "withdrawal",
-            "Withdrawal of UGX " + amount));
+            "Withdrawal of UGX " + amount + " via " + (method != null ? method : "mobile_money")));
     }
 
     @Transactional
     public void topup(Authentication auth, BigDecimal amount) {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+        if (amount.compareTo(BigDecimal.valueOf(1000)) < 0) {
+            throw new RuntimeException("Minimum top up is UGX 1,000");
+        }
         User user = userRepo.findById(principal.getId())
             .orElseThrow(() -> new RuntimeException("User not found"));
         user.setBalance(user.getBalance().add(amount));
+        user.setUpdatedAt(LocalDateTime.now());
         userRepo.save(user);
         transactionRepo.save(new Transaction(user.getId(), amount, "topup",
             "Top up of UGX " + amount));

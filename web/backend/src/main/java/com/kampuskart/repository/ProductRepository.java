@@ -11,20 +11,38 @@ import java.util.List;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByIsActiveTrueAndSellerName(String sellerName);
 
     @Query(value = "SELECT * FROM products p WHERE p.is_active = true " +
-           "AND (CAST(?1 AS varchar) IS NULL OR ?1 = 'all' OR p.category = CAST(?1 AS varchar)) " +
-           "AND (CAST(?2 AS varchar) IS NULL OR ?2 = 'all' OR p.campus = CAST(?2 AS varchar)) " +
-           "AND (CAST(?3 AS varchar) IS NULL OR p.title ILIKE '%' || CAST(?3 AS varchar) || '%' OR p.seller_name ILIKE '%' || CAST(?3 AS varchar) || '%') " +
-           "AND (CAST(?4 AS numeric) IS NULL OR p.price >= CAST(?4 AS numeric)) " +
-           "AND (CAST(?5 AS numeric) IS NULL OR p.price <= CAST(?5 AS numeric)) " +
-           "AND (CAST(?6 AS bigint) IS NULL OR p.seller_name IN (SELECT u.name FROM users u WHERE u.id = CAST(?6 AS bigint)))",
+           "AND (:category IS NULL OR p.category = :category) " +
+           "AND (:campus IS NULL OR p.campus = :campus) " +
+           "AND (:search IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+           "AND (:sellerId IS NULL OR p.seller_id = :sellerId)",
            nativeQuery = true)
-    List<Product> findFiltered(String category, String campus, String search,
-                               BigDecimal minPrice, BigDecimal maxPrice, Long sellerId);
+    List<Product> findFiltered(@Param("category") String category,
+                               @Param("campus") String campus,
+                               @Param("search") String search,
+                               @Param("minPrice") BigDecimal minPrice,
+                               @Param("maxPrice") BigDecimal maxPrice,
+                               @Param("sellerId") String sellerId);
 
-    long countByCategoryAndIsActiveTrue(String category);
-    List<Product> findBySellerName(String sellerName);
+    List<Product> findByIsActiveTrueAndSellerName(String sellerName);
+
+    List<Product> findBySellerId(String sellerId);
+
+    long countByIsActiveTrue();
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.sellerId = :sellerId AND p.isActive = true")
+    long countBySellerId(@Param("sellerId") String sellerId);
+
+    @Query(value = "SELECT DISTINCT category FROM products WHERE is_active = true ORDER BY category", nativeQuery = true)
     List<String> findDistinctCategoryByIsActiveTrue();
+
+    @Query(value = "SELECT DISTINCT category FROM products WHERE is_active = true", nativeQuery = true)
+    List<String> findDistinctCategories();
+
+    @Query("SELECT p FROM Product p WHERE p.isActive = true AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :term, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :term, '%')))")
+    List<Product> searchByTerm(@Param("term") String term);
 }

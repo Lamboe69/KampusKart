@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface PayoutRepository extends JpaRepository<Payout, Long> {
     List<Payout> findAllByOrderByCreatedAtDesc();
-    List<Payout> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Payout> findByUserIdOrderByCreatedAtDesc(String userId);
 }

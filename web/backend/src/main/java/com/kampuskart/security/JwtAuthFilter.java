@@ -1,6 +1,5 @@
 package com.kampuskart.security;
 
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,22 +22,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            if (jwtUtil.validateToken(token)) {
-                Claims claims = jwtUtil.parseToken(token);
-                Long userId = claims.get("id", Long.class);
-                String email = claims.getSubject();
-                String role = claims.get("role", String.class);
-                var auth = new UsernamePasswordAuthenticationToken(
-                    new UserPrincipal(userId, email, role), null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+        String header = request.getHeader("Authorization");
+
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
+                if (jwtUtil.validateToken(token)) {
+                    String userId = jwtUtil.getUserIdFromToken(token);
+                    String email = jwtUtil.getEmailFromToken(token);
+                    String role = jwtUtil.getRoleFromToken(token);
+
+                    UserPrincipal principal = new UserPrincipal(userId, email, role);
+                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.toUpperCase());
+                    UsernamePasswordAuthenticationToken auth =
+                            new UsernamePasswordAuthenticationToken(principal, null, List.of(authority));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (Exception e) {
+                SecurityContextHolder.clearContext();
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

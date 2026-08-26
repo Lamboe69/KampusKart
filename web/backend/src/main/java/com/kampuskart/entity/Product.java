@@ -26,16 +26,25 @@ public class Product {
     @Column(name = "delivery_fee", precision = 10, scale = 2)
     private BigDecimal deliveryFee = BigDecimal.ZERO;
 
-    @Column(name = "delivery_zones", length = 500)
+    @Column(name = "delivery_zones", length = 1000)
     private String deliveryZones;
+
+    @Column(name = "delivery_fees", length = 1000)
+    private String deliveryFees;
 
     private String category;
     private String campus;
     private String condition;
     private String image;
 
+    @Column(length = 2000)
+    private String images;
+
     @Column(name = "seller_name")
     private String sellerName;
+
+    @Column(name = "seller_id", length = 36)
+    private String sellerId;
 
     @Column(name = "seller_type")
     private String sellerType;
@@ -48,6 +57,12 @@ public class Product {
 
     @Column(name = "sales_count")
     private Integer salesCount = 0;
+
+    @Column(name = "badge", length = 50)
+    private String badge;
+
+    @Column(name = "return_policy", length = 200)
+    private String returnPolicy;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -72,6 +87,8 @@ public class Product {
     public void setDeliveryFee(BigDecimal deliveryFee) { this.deliveryFee = deliveryFee; }
     public String getDeliveryZones() { return deliveryZones; }
     public void setDeliveryZones(String deliveryZones) { this.deliveryZones = deliveryZones; }
+    public String getDeliveryFees() { return deliveryFees; }
+    public void setDeliveryFees(String deliveryFees) { this.deliveryFees = deliveryFees; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
     public String getCampus() { return campus; }
@@ -80,8 +97,12 @@ public class Product {
     public void setCondition(String condition) { this.condition = condition; }
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
+    public String getImages() { return images; }
+    public void setImages(String images) { this.images = images; }
     public String getSellerName() { return sellerName; }
     public void setSellerName(String sellerName) { this.sellerName = sellerName; }
+    public String getSellerId() { return sellerId; }
+    public void setSellerId(String sellerId) { this.sellerId = sellerId; }
     public String getSellerType() { return sellerType; }
     public void setSellerType(String sellerType) { this.sellerType = sellerType; }
     public BigDecimal getRating() { return rating; }
@@ -90,6 +111,10 @@ public class Product {
     public void setReviewsCount(Integer reviewsCount) { this.reviewsCount = reviewsCount; }
     public Integer getSalesCount() { return salesCount; }
     public void setSalesCount(Integer salesCount) { this.salesCount = salesCount; }
+    public String getBadge() { return badge; }
+    public void setBadge(String badge) { this.badge = badge; }
+    public String getReturnPolicy() { return returnPolicy; }
+    public void setReturnPolicy(String returnPolicy) { this.returnPolicy = returnPolicy; }
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public LocalDateTime getCreatedAt() { return createdAt; }
