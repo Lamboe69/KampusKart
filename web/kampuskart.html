@@ -302,7 +302,7 @@ const api = {
       </svg>
     );
 
-    const CATEGORIES = [
+    let CATEGORIES = [
       { id: 'all', name: 'All', icon: '🔍' },
       { id: 'electronics', name: 'Electronics', icon: '📱' },
       { id: 'fashion', name: 'Fashion', icon: '👕' },
@@ -313,7 +313,7 @@ const api = {
       { id: 'furniture', name: 'Furniture', icon: '🪑' },
     ];
 
-    const CAMPUSES = [
+    let CAMPUSES = [
       { id: 'makerere', name: 'Makerere University', location: 'Kampala' },
       { id: 'kyambogo', name: 'Kyambogo University', location: 'Kampala' },
       { id: 'muk', name: 'Mbarara University', location: 'Mbarara' },
@@ -411,16 +411,24 @@ const AppContext = createContext();
         const init = async () => {
           setLoading(true);
           try {
-            const [prodData, shopData] = await Promise.all([
+            const [prodData, shopData, catData, campusData] = await Promise.all([
               api.get('/products').then(d => ({
                 products: (d.products || []).map(normalizeProduct)
               })),
               api.get('/shops').then(d => ({
                 shops: (d.shops || []).map(s => ({ ...s, reviews: s.reviews || s.reviews_count || 0 }))
               })),
+              api.get('/categories').catch(() => null),
+              api.get('/campuses').catch(() => null),
             ]);
             setProducts(prodData.products || prodData);
             setShops(shopData.shops || shopData);
+            if (catData && catData.categories) {
+              CATEGORIES = [{ id: 'all', name: 'All', icon: '🔍' }, ...catData.categories];
+            }
+            if (campusData && campusData.campuses) {
+              CAMPUSES = campusData.campuses;
+            }
           } catch (e) {
             console.error('Failed to load public data', e);
           }
