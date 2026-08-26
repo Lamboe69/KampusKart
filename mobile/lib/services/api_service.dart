@@ -74,13 +74,13 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<dynamic> upload(String endpoint, Map<String, dynamic> fields, {String? filePath, String fileField = 'file'}) async {
+  Future<dynamic> upload(String endpoint, {Map<String, dynamic>? fields, String? filePath, String fileField = 'file'}) async {
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('${ApiConfig.baseUrl}$endpoint'),
     );
     if (_token != null) request.headers['Authorization'] = 'Bearer $_token';
-    fields.forEach((k, v) => request.fields[k] = v.toString());
+    if (fields != null) fields.forEach((k, v) => request.fields[k] = v.toString());
     if (filePath != null && filePath.isNotEmpty) {
       request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
     }

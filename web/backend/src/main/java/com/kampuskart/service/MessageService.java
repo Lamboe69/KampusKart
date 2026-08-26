@@ -39,10 +39,7 @@ public class MessageService {
             if (partner == null) return null;
 
             Message lastMsg = messageRepo.findLastMessage(userId, partnerId);
-            long unreadCount = 0;
-            if (lastMsg != null && lastMsg.getReceiverId().equals(userId) && !lastMsg.getRead()) {
-                unreadCount = 1;
-            }
+            long unreadCount = messageRepo.countUnreadFromSender(partnerId, userId);
 
             Map<String, Object> conv = new HashMap<>();
             conv.put("userId", partner.getId());

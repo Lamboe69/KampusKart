@@ -26,4 +26,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     Message findLastMessage(@Param("userId1") String userId1, @Param("userId2") String userId2);
 
     long countByReceiverIdAndReadFalse(String receiverId);
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.senderId = :senderId AND m.receiverId = :receiverId AND m.read = false")
+    long countUnreadFromSender(@Param("senderId") String senderId, @Param("receiverId") String receiverId);
 }

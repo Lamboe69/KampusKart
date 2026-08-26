@@ -268,7 +268,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, createContext, useContext } = React;
 
-const API = window.location.origin + '/api';
+const API = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : window.location.origin + '/api';
 const TOKEN_KEY = 'kampuskart_token';
 
 const api = {
@@ -2316,7 +2316,7 @@ const AppContext = createContext();
             category: formData.category,
             condition: formData.condition,
             description: formData.description,
-            image: imgs.length > 0 ? JSON.stringify(imgs) : '',
+            image: validImages.length > 0 ? JSON.stringify(validImages) : '',
             delivery_zones: formData.deliveryZones,
             delivery_fee: parseInt(formData.deliveryFee) || 0,
             delivery_fees: feesMap,
@@ -3072,7 +3072,8 @@ const AppContext = createContext();
 
         const token = localStorage.getItem('kampuskart_token');
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${wsProtocol}//${window.location.host}?token=${token}`);
+        const wsHost = window.location.hostname === 'localhost' ? 'localhost:3001' : window.location.host;
+        const socket = new WebSocket(`${wsProtocol}//${wsHost}?token=${token}`);
         socket.onopen = () => { setWs(socket); };
         socket.onmessage = (e) => {
           try {
